@@ -1,0 +1,1625 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Schema – Chefvy</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f5f5f3; color: #1a1a1a; min-height: 100vh; }
+
+    #login-screen {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #f5f5f3;
+    }
+    .login-card {
+      background: #fff; border: 1px solid #e5e5e5; border-radius: 14px; padding: 2.5rem 2rem; width: 320px; text-align: center;
+    }
+    .login-card .logo { font-size: 32px; color: #185FA5; margin-bottom: 1rem; }
+    .login-card h1 { font-size: 18px; font-weight: 500; margin-bottom: 0.3rem; }
+    .login-card p { font-size: 13px; color: #888; margin-bottom: 1.5rem; }
+    .login-card input { width: 100%; font-size: 15px; padding: 9px 12px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 12px; }
+    .login-card button { width: 100%; background: #185FA5; color: #E6F1FB; border: none; border-radius: 8px; padding: 10px; font-size: 15px; cursor: pointer; }
+    .login-card button:hover { background: #0C447C; }
+    .login-err { color: #A32D2D; font-size: 13px; margin-top: 8px; display: none; }
+
+    #app { display: none; padding: 1.5rem; max-width: 1100px; margin: 0 auto; }
+
+    .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 12px; }
+    .topbar-left { display: flex; align-items: center; gap: 10px; }
+    .topbar h1 { font-size: 20px; font-weight: 500; }
+    .badge-chef { background: #B5D4F4; color: #042C53; font-size: 11px; padding: 3px 9px; border-radius: 20px; font-weight: 500; }
+    .nav-week { display: flex; align-items: center; gap: 8px; }
+    .nav-week button { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 6px 10px; cursor: pointer; font-size: 14px; }
+    .nav-week button:hover { background: #f0f0f0; }
+    .week-label { font-size: 14px; color: #666; min-width: 160px; text-align: center; }
+    .topbar-right { display: flex; gap: 8px; }
+    .add-btn { background: #185FA5; color: #E6F1FB; border: none; border-radius: 8px; padding: 8px 14px; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 6px; }
+    .add-btn:hover { background: #0C447C; }
+    .logout-btn { background: none; border: 1px solid #ddd; border-radius: 8px; padding: 8px 12px; cursor: pointer; font-size: 14px; color: #666; display: flex; align-items: center; gap: 5px; }
+    .logout-btn:hover { background: #fef2f2; border-color: #f09595; color: #A32D2D; }
+
+    .summary { display: flex; gap: 12px; margin-bottom: 1.25rem; flex-wrap: wrap; }
+    .stat { background: #fff; border-radius: 8px; padding: 12px 16px; flex: 1; min-width: 90px; border: 1px solid #e5e5e5; }
+    .stat .slabel { font-size: 12px; color: #888; }
+    .stat .sval { font-size: 22px; font-weight: 500; }
+
+    .schedule { border: 1px solid #e5e5e5; border-radius: 12px; overflow: hidden; background: #fff; }
+    .header-row { display: grid; grid-template-columns: 140px repeat(7, 1fr); background: #f9f9f7; border-bottom: 1px solid #e5e5e5; }
+    .corner { border-right: 1px solid #e5e5e5; }
+    .header-day { padding: 10px 4px; text-align: center; font-size: 12px; color: #888; border-right: 1px solid #e5e5e5; }
+    .header-day:last-child { border-right: none; }
+    .header-day.today { color: #185FA5; font-weight: 500; }
+    .header-day .date-num { font-size: 18px; font-weight: 500; display: block; }
+    .emp-row { display: grid; grid-template-columns: 140px repeat(7, 1fr); border-bottom: 1px solid #e5e5e5; min-height: 60px; }
+    .emp-row:last-child { border-bottom: none; }
+    .emp-name { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-right: 1px solid #e5e5e5; background: #fafafa; }
+    .avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; flex-shrink: 0; }
+    .emp-info .name { font-size: 13px; font-weight: 500; }
+    .emp-info .role { font-size: 11px; color: #888; }
+    
+    /* Cell-hovering */
+    .day-cell { border-right: 1px solid #e5e5e5; padding: 4px; display: flex; flex-direction: column; gap: 3px; cursor: pointer; transition: background 0.15s; justify-content: center; }
+    .day-cell:last-child { border-right: none; }
+    .day-cell:hover { background: #f2f7fe; }
+    .day-cell:hover .empty-hint { opacity: 1; }
+
+    .shift { border-radius: 4px; padding: 4px 8px; font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; position: relative; }
+    .shift:hover { filter: brightness(0.95); }
+    .shift .time { font-weight: 500; }
+    .shift .del { opacity: 0; font-size: 11px; cursor: pointer; background: none; border: none; padding: 0 2px; color: inherit; transition: opacity 0.15s; }
+    .shift:hover .del { opacity: 0.7; }
+    .shift .del:hover { opacity: 1; font-weight: bold; }
+
+    .s-blue   { background: #B5D4F4; color: #042C53; }
+    .s-green  { background: #C0DD97; color: #173404; }
+    .s-amber  { background: #FAC775; color: #412402; }
+    .s-purple { background: #CECBF6; color: #26215C; }
+    .s-coral  { background: #F5C4B3; color: #4A1B0C; }
+    .s-teal   { background: #9FE1CB; color: #04342C; }
+    
+    .empty-hint { font-size: 10px; color: #a0b2c6; text-align: center; padding: 4px 0; opacity: 0; transition: opacity 0.15s; pointer-events: none; }
+
+    .modal-overlay { display: none; min-height: 100vh; background: rgba(0,0,0,0.35); align-items: center; justify-content: center; position: fixed; inset: 0; z-index: 200; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: #fff; border-radius: 12px; border: 1px solid #e5e5e5; padding: 1.5rem; width: 340px; }
+    .modal h2 { font-size: 16px; font-weight: 500; margin-bottom: 1rem; }
+    .field { margin-bottom: 12px; }
+    .field label { font-size: 12px; color: #666; display: block; margin-bottom: 4px; }
+    .field select, .field input[type="time"] { width: 100%; font-size: 14px; padding: 7px 10px; border: 1px solid #ddd; border-radius: 8px; background: #fff; color: #1a1a1a; }
+    .time-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .modal-btns { display: flex; gap: 8px; margin-top: 1.25rem; justify-content: flex-end; }
+    .modal-btns button { padding: 8px 18px; border-radius: 8px; font-size: 14px; cursor: pointer; }
+    .btn-cancel { background: none; border: 1px solid #ddd; color: #333; }
+    .btn-cancel:hover { background: #f0f0f0; }
+    .btn-save { background: #185FA5; color: #E6F1FB; border: none; }
+    .btn-save:hover { background: #0C447C; }
+
+    .toast { position: fixed; bottom: 24px; right: 24px; background: #1a1a1a; color: #fff; padding: 10px 18px; border-radius: 8px; font-size: 13px; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 300; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-card">
+    <div class="logo"><i class="ti ti-calendar"></i></div>
+    <h1>Chefinloggning</h1>
+    <p>Logga in för att hantera schemat</p>
+    <input type="password" id="pw-input" placeholder="Lösenord" onkeydown="if(event.key==='Enter')login()">
+    <button onclick="login()">Logga in</button>
+    <div class="login-err" id="login-err">Fel lösenord, försök igen.</div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-left">
+      <i class="ti ti-calendar" style="font-size:22px;color:#185FA5"></i>
+      <h1>Schema</h1>
+      <span class="badge-chef"><i class="ti ti-shield-check" style="font-size:11px"></i> Chef</span>
+    </div>
+    <div class="nav-week">
+      <button onclick="changeWeek(-1)"><i class="ti ti-chevron-left"></i></button>
+      <span class="week-label" id="week-label"></span>
+      <button onclick="changeWeek(1)"><i class="ti ti-chevron-right"></i></button>
+    </div>
+    <div class="topbar-right">
+      <button class="add-btn" onclick="openModal()"><i class="ti ti-plus"></i> Lägg till pass</button>
+      <button class="logout-btn" onclick="logout()">Logga ut</button>
+    </div>
+  </div>
+
+  <div class="summary" id="summary"></div>
+
+  <div class="schedule">
+    <div class="header-row">
+      <div class="corner"></div>
+      <div class="header-day" id="hd0"></div>
+      <div class="header-day" id="hd1"></div>
+      <div class="header-day" id="hd2"></div>
+      <div class="header-day" id="hd3"></div>
+      <div class="header-day" id="hd4"></div>
+      <div class="header-day" id="hd5"></div>
+      <div class="header-day" id="hd6"></div>
+    </div>
+    <div id="emp-rows"></div>
+  </div>
+</div>
+
+<div id="modal" class="modal-overlay" onclick="closeIfOutside(event)">
+  <div class="modal">
+    <h2 id="modal-title">Lägg till pass</h2>
+    <div class="field"><label>Anställd</label><select id="sel-emp"></select></div>
+    <div class="field">
+      <label>Dag & Datum</label>
+      <select id="sel-day"></select>
+    </div>
+    <input type="hidden" id="sel-week-id">
+    
+    <div class="time-row">
+      <div class="field"><label>Starttid</label><input type="time" id="sel-start" value="08:00"></div>
+      <div class="field"><label>Sluttid</label><input type="time" id="sel-end" value="16:00"></div>
+    </div>
+    <div class="field">
+      <label>Färg</label>
+      <select id="sel-color">
+        <option value="s-blue">Blå</option><option value="s-green">Grön</option>
+        <option value="s-amber">Gul</option><option value="s-purple">Lila</option>
+        <option value="s-coral">Korall</option><option value="s-teal">Turkos</option>
+      </select>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Avbryt</button>
+      <button class="btn-save" onclick="saveShift()" id="modal-save-btn">Spara pass</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const CHEF_PASSWORD = "chef123";
+  const STORAGE_KEY = "quinyx_shifts_v1";
+
+  const employees = [
+    { id: 1, name: "Anna S.",   role: "Kassör",  color: "#CECBF6", tc: "#26215C" },
+    { id: 2, name: "Marcus L.",role: "Säljare", color: "#9FE1CB", tc: "#04342C" },
+    { id: 3, name: "Sara K.",  role: "Lager",   color: "#F5C4B3", tc: "#4A1B0C" },
+    { id: 4, name: "Erik H.",  role: "Säljare", color: "#FAC775", tc: "#412402" },
+    { id: 5, name: "Lena B.",  role: "Chef",    color: "#B5D4F4", tc: "#042C53" },
+  ];
+
+  // FIX: Lagt till en 'weekId'-egenskap på standardpassen så de inte visas på alla veckor
+  const defaultShifts = [
+    { id:1,  emp:1, day:0, weekId:"2026-W25", start:"08:00", end:"16:00", color:"s-blue"   },
+    { id:2,  emp:2, day:0, weekId:"2026-W25", start:"14:00", end:"22:00", color:"s-teal"   },
+    { id:3,  emp:3, day:1, weekId:"2026-W25", start:"07:00", end:"15:00", color:"s-coral"  },
+    { id:4,  emp:5, day:0, weekId:"2026-W25", start:"09:00", end:"17:00", color:"s-blue"   },
+    { id:5,  emp:1, day:2, weekId:"2026-W25", start:"08:00", end:"16:00", color:"s-blue"   },
+    { id:6,  emp:4, day:3, weekId:"2026-W25", start:"12:00", end:"20:00", color:"s-amber"  },
+    { id:7,  emp:2, day:4, weekId:"2026-W25", start:"08:00", end:"14:00", color:"s-teal"   },
+    { id:8,  emp:5, day:4, weekId:"2026-W25", start:"09:00", end:"17:00", color:"s-blue"   },
+    { id:9,  emp:3, day:5, weekId:"2026-W25", start:"10:00", end:"18:00", color:"s-coral"  },
+    { id:10, emp:4, day:1, weekId:"2026-W25", start:"08:00", end:"16:00", color:"s-amber"  },
+  ];
+
+  function loadShifts() {
+    try { 
+      const d = localStorage.getItem(STORAGE_KEY); 
+      if(d) {
+        let parsed = JSON.parse(d);
+        // Säkerställ att gamla sparade pass också får ett standard-weekId om det saknas
+        parsed.forEach(s => { if(!s.weekId) s.weekId = "2026-W25"; });
+        return parsed;
+      }
+      return defaultShifts;
+    }
+    catch(e) { return defaultShifts; }
+  }
+  function saveShifts() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(shifts));
+  }
+
+  let shifts = loadShifts();
+  let nextId = Math.max(...shifts.map(s=>s.id), 10) + 1;
+  let weekOffset = 0;
+  let editId = null;
+
+  function login() {
+    const val = document.getElementById("pw-input").value;
+    if(val === CHEF_PASSWORD) {
+      document.getElementById("login-screen").style.display = "none";
+      document.getElementById("app").style.display = "block";
+      render();
+    } else {
+      document.getElementById("login-err").style.display = "block";
+      document.getElementById("pw-input").value = "";
+    }
+  }
+
+  function logout() {
+    document.getElementById("login-screen").style.display = "flex";
+    document.getElementById("app").style.display = "none";
+    document.getElementById("pw-input").value = "";
+  }
+
+  function initials(n) { return n.split(" ").map(x=>x[0]).join("").toUpperCase(); }
+  const days = ["Mån","Tis","Ons","Tor","Fre","Lör","Sön"];
+  const fullDays = ["Måndag","Tisdag","Onsdag","Torsdag","Fredag","Lördag","Söndag"];
+
+  function getMondayOfWeek(offset) {
+    const now = new Date(); const day = now.getDay();
+    const diff = (day===0?-6:1-day); const mon = new Date(now);
+    mon.setDate(now.getDate()+diff+offset*7); mon.setHours(0,0,0,0); return mon;
+  }
+  function formatDate(d) { return d.getDate()+"/"+(d.getMonth()+1); }
+  function isToday(d) { const t=new Date(); t.setHours(0,0,0,0); return d.getTime()===t.getTime(); }
+  function getDuration(s,e) {
+    const [sh,sm]=s.split(":").map(Number); const [eh,em]=e.split(":").map(Number);
+    return ((eh*60+em)-(sh*60+sm))/60;
+  }
+  
+  // Skapar en unik sträng för varje vecka (ex: "2026-W25")
+  function getWeekIdentifier(d) {
+    const date=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+    const dn=date.getUTCDay()||7; date.setUTCDate(date.getUTCDate()+4-dn);
+    const ys=new Date(Date.UTC(date.getUTCFullYear(),0,1));
+    const wNum = Math.ceil((((date-ys)/86400000)+1)/7);
+    return date.getUTCFullYear() + "-W" + wNum;
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById("toast"); t.textContent = msg; t.classList.add("show");
+    setTimeout(()=>t.classList.remove("show"), 2200);
+  }
+
+  // Uppdaterar rullistan i rutan med dynamiska datum baserat på vald vecka
+  function updateDaySelectOptions(mon) {
+    const daySelect = document.getElementById("sel-day");
+    daySelect.innerHTML = fullDays.map((name, i) => {
+      const d = new Date(mon);
+      d.setDate(mon.getDate() + i);
+      return `<option value="${i}">${name} (${d.getDate()}/${d.getMonth()+1})</option>`;
+    }).join("");
+  }
+
+  function render() {
+    const mon = getMondayOfWeek(weekOffset);
+    const currentWeekId = getWeekIdentifier(mon);
+    const dates = Array.from({length:7},(_,i)=>{ const d=new Date(mon); d.setDate(mon.getDate()+i); return d; });
+    
+    document.getElementById("week-label").textContent = "Vecka "+currentWeekId.split("-W")[1]+" · "+formatDate(dates[0])+" – "+formatDate(dates[6]);
+    
+    days.forEach((d,i)=>{
+      const el=document.getElementById("hd"+i);
+      el.innerHTML=`<span style="font-size:11px">${d}</span><span class="date-num">${dates[i].getDate()}</span>`;
+      isToday(dates[i])?el.classList.add("today"):el.classList.remove("today");
+    });
+    
+    document.getElementById("sel-emp").innerHTML = employees.map(e=>`<option value="${e.id}">${e.name}</option>`).join("");
+    
+    const rows = document.getElementById("emp-rows");
+    rows.innerHTML = employees.map(emp => {
+      const cells = Array.from({length:7},(_, di)=>{
+        // FIX: Filtrerar nu även på weekId så att bara den aktuella veckans pass syns!
+        const ds = shifts.filter(s=>s.emp===emp.id && s.day===di && s.weekId === currentWeekId);
+        
+        const html = ds.map(s=>
+          `<div class="shift ${s.color}" onclick="openEdit(event, ${s.id})" title="Redigera">
+            <span class="time">${s.start}–${s.end}</span>
+            <button class="del" onclick="event.stopPropagation();deleteShift(${s.id})">✕</button>
+          </div>`).join("");
+        return `<div class="day-cell" onclick="openModalForCell(${emp.id},${di})">${html}${ds.length===0?'<div class="empty-hint">+ lägg till</div>':''}</div>`;
+      });
+      return `<div class="emp-row">
+        <div class="emp-name">
+          <div class="avatar" style="background:${emp.color};color:${emp.tc}">${initials(emp.name)}</div>
+          <div class="emp-info"><div class="name">${emp.name}</div><div class="role">${emp.role}</div></div>
+        </div>${cells.join("")}</div>`;
+    }).join("");
+
+    // FIX: Summeringen räknar nu bara timmar och pass för den aktuella veckan
+    const weekShifts = shifts.filter(s => s.weekId === currentWeekId);
+    const total = weekShifts.length;
+    const hours = Math.round(weekShifts.reduce((a,s)=>a+getDuration(s.start,s.end),0));
+    const staffed = new Set(weekShifts.map(s=>s.day)).size;
+    
+    document.getElementById("summary").innerHTML = `
+      <div class="stat"><div class="slabel">Pass</div><div class="sval">${total}</div></div>
+      <div class="stat"><div class="slabel">Timmar</div><div class="sval">${hours}</div></div>
+      <div class="stat"><div class="slabel">Bemannade dagar</div><div class="sval">${staffed}/7</div></div>
+      <div class="stat"><div class="slabel">Personal</div><div class="sval">${employees.length}</div></div>`;
+  }
+
+  function changeWeek(dir) { weekOffset+=dir; render(); }
+
+  function openModal(empId=null, dayIdx=null) {
+    editId=null;
+    const mon = getMondayOfWeek(weekOffset);
+    
+    document.getElementById("modal-title").textContent="Lägg till pass";
+    document.getElementById("modal-save-btn").textContent="Spara pass";
+    document.getElementById("sel-week-id").value = getWeekIdentifier(mon);
+    
+    updateDaySelectOptions(mon);
+    
+    if(empId) document.getElementById("sel-emp").value=empId;
+    if(dayIdx!==null) document.getElementById("sel-day").value=dayIdx;
+    document.getElementById("sel-start").value="08:00";
+    document.getElementById("sel-end").value="16:00";
+    document.getElementById("sel-color").value="s-blue";
+    document.getElementById("modal").classList.add("open");
+  }
+  
+  function openModalForCell(empId,dayIdx) { openModal(empId,dayIdx); }
+  
+  function openEdit(e, id) {
+    if(e) e.stopPropagation(); 
+    const s=shifts.find(x=>x.id===id); if(!s) return;
+    editId=id;
+    
+    const mon = getMondayOfWeek(weekOffset);
+    updateDaySelectOptions(mon);
+    
+    document.getElementById("modal-title").textContent="Redigera pass";
+    document.getElementById("modal-save-btn").textContent="Uppdatera pass";
+    document.getElementById("sel-week-id").value = s.weekId;
+    document.getElementById("sel-emp").value = s.emp;
+    document.getElementById("sel-day").value = s.day;
+    document.getElementById("sel-start").value = s.start;
+    document.getElementById("sel-end").value = s.end;
+    document.getElementById("sel-color").value = s.color;
+    document.getElementById("modal").classList.add("open");
+  }
+  
+  function closeModal() { document.getElementById("modal").classList.remove("open"); editId=null; }
+  function closeIfOutside(e) { if(e.target.id==="modal") closeModal(); }
+
+  function saveShift() {
+    const emp=parseInt(document.getElementById("sel-emp").value);
+    const day=parseInt(document.getElementById("sel-day").value);
+    const weekId=document.getElementById("sel-week-id").value;
+    const start=document.getElementById("sel-start").value;
+    const end=document.getElementById("sel-end").value;
+    const color=document.getElementById("sel-color").value;
+    if(start>=end){alert("Sluttid måste vara efter starttid!"); return;}
+    
+    if(editId!==null) { 
+      const s=shifts.find(x=>x.id===editId); 
+      Object.assign(s,{emp,day,weekId,start,end,color}); 
+      showToast("Pass uppdaterat"); 
+    }
+    else { 
+      shifts.push({id:nextId++,emp,day,weekId,start,end,color}); 
+      showToast("Pass tillagt"); 
+    }
+    saveShifts(); closeModal(); render();
+  }
+  
+  function deleteShift(id) {
+    if(confirm("Ta bort detta pass?")) {
+      shifts=shifts.filter(s=>s.id!==id); saveShifts(); render(); showToast("Pass borttaget");
+    }
+  }
+</script>
+</body>
+</html><!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Schema – Chefvy</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f5f5f3; color: #1a1a1a; min-height: 100vh; }
+
+    #login-screen {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #f5f5f3;
+    }
+    .login-card {
+      background: #fff; border: 1px solid #e5e5e5; border-radius: 14px; padding: 2.5rem 2rem; width: 320px; text-align: center;
+    }
+    .login-card .logo { font-size: 32px; color: #185FA5; margin-bottom: 1rem; }
+    .login-card h1 { font-size: 18px; font-weight: 500; margin-bottom: 0.3rem; }
+    .login-card p { font-size: 13px; color: #888; margin-bottom: 1.5rem; }
+    .login-card input { width: 100%; font-size: 15px; padding: 9px 12px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 12px; }
+    .login-card button { width: 100%; background: #185FA5; color: #E6F1FB; border: none; border-radius: 8px; padding: 10px; font-size: 15px; cursor: pointer; }
+    .login-card button:hover { background: #0C447C; }
+    .login-err { color: #A32D2D; font-size: 13px; margin-top: 8px; display: none; }
+
+    #app { display: none; padding: 1.5rem; max-width: 1100px; margin: 0 auto; }
+
+    .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 12px; }
+    .topbar-left { display: flex; align-items: center; gap: 10px; }
+    .topbar h1 { font-size: 20px; font-weight: 500; }
+    .badge-chef { background: #B5D4F4; color: #042C53; font-size: 11px; padding: 3px 9px; border-radius: 20px; font-weight: 500; }
+    .nav-week { display: flex; align-items: center; gap: 8px; }
+    .nav-week button { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 6px 10px; cursor: pointer; font-size: 14px; }
+    .nav-week button:hover { background: #f0f0f0; }
+    .week-label { font-size: 14px; color: #666; min-width: 160px; text-align: center; }
+    .topbar-right { display: flex; gap: 8px; }
+    .add-btn { background: #185FA5; color: #E6F1FB; border: none; border-radius: 8px; padding: 8px 14px; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 6px; }
+    .add-btn:hover { background: #0C447C; }
+    .logout-btn { background: none; border: 1px solid #ddd; border-radius: 8px; padding: 8px 12px; cursor: pointer; font-size: 14px; color: #666; display: flex; align-items: center; gap: 5px; }
+    .logout-btn:hover { background: #fef2f2; border-color: #f09595; color: #A32D2D; }
+
+    .summary { display: flex; gap: 12px; margin-bottom: 1.25rem; flex-wrap: wrap; }
+    .stat { background: #fff; border-radius: 8px; padding: 12px 16px; flex: 1; min-width: 90px; border: 1px solid #e5e5e5; }
+    .stat .slabel { font-size: 12px; color: #888; }
+    .stat .sval { font-size: 22px; font-weight: 500; }
+
+    .schedule { border: 1px solid #e5e5e5; border-radius: 12px; overflow: hidden; background: #fff; }
+    .header-row { display: grid; grid-template-columns: 140px repeat(7, 1fr); background: #f9f9f7; border-bottom: 1px solid #e5e5e5; }
+    .corner { border-right: 1px solid #e5e5e5; }
+    .header-day { padding: 10px 4px; text-align: center; font-size: 12px; color: #888; border-right: 1px solid #e5e5e5; }
+    .header-day:last-child { border-right: none; }
+    .header-day.today { color: #185FA5; font-weight: 500; }
+    .header-day .date-num { font-size: 18px; font-weight: 500; display: block; }
+    .emp-row { display: grid; grid-template-columns: 140px repeat(7, 1fr); border-bottom: 1px solid #e5e5e5; min-height: 60px; }
+    .emp-row:last-child { border-bottom: none; }
+    .emp-name { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-right: 1px solid #e5e5e5; background: #fafafa; }
+    .avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; flex-shrink: 0; }
+    .emp-info .name { font-size: 13px; font-weight: 500; }
+    .emp-info .role { font-size: 11px; color: #888; }
+    
+    /* Cell-hovering */
+    .day-cell { border-right: 1px solid #e5e5e5; padding: 4px; display: flex; flex-direction: column; gap: 3px; cursor: pointer; transition: background 0.15s; justify-content: center; }
+    .day-cell:last-child { border-right: none; }
+    .day-cell:hover { background: #f2f7fe; }
+    .day-cell:hover .empty-hint { opacity: 1; }
+
+    .shift { border-radius: 4px; padding: 4px 8px; font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; position: relative; }
+    .shift:hover { filter: brightness(0.95); }
+    .shift .time { font-weight: 500; }
+    .shift .del { opacity: 0; font-size: 11px; cursor: pointer; background: none; border: none; padding: 0 2px; color: inherit; transition: opacity 0.15s; }
+    .shift:hover .del { opacity: 0.7; }
+    .shift .del:hover { opacity: 1; font-weight: bold; }
+
+    .s-blue   { background: #B5D4F4; color: #042C53; }
+    .s-green  { background: #C0DD97; color: #173404; }
+    .s-amber  { background: #FAC775; color: #412402; }
+    .s-purple { background: #CECBF6; color: #26215C; }
+    .s-coral  { background: #F5C4B3; color: #4A1B0C; }
+    .s-teal   { background: #9FE1CB; color: #04342C; }
+    
+    .empty-hint { font-size: 10px; color: #a0b2c6; text-align: center; padding: 4px 0; opacity: 0; transition: opacity 0.15s; pointer-events: none; }
+
+    .modal-overlay { display: none; min-height: 100vh; background: rgba(0,0,0,0.35); align-items: center; justify-content: center; position: fixed; inset: 0; z-index: 200; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: #fff; border-radius: 12px; border: 1px solid #e5e5e5; padding: 1.5rem; width: 340px; }
+    .modal h2 { font-size: 16px; font-weight: 500; margin-bottom: 1rem; }
+    .field { margin-bottom: 12px; }
+    .field label { font-size: 12px; color: #666; display: block; margin-bottom: 4px; }
+    .field select, .field input[type="time"] { width: 100%; font-size: 14px; padding: 7px 10px; border: 1px solid #ddd; border-radius: 8px; background: #fff; color: #1a1a1a; }
+    .time-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .modal-btns { display: flex; gap: 8px; margin-top: 1.25rem; justify-content: flex-end; }
+    .modal-btns button { padding: 8px 18px; border-radius: 8px; font-size: 14px; cursor: pointer; }
+    .btn-cancel { background: none; border: 1px solid #ddd; color: #333; }
+    .btn-cancel:hover { background: #f0f0f0; }
+    .btn-save { background: #185FA5; color: #E6F1FB; border: none; }
+    .btn-save:hover { background: #0C447C; }
+
+    .toast { position: fixed; bottom: 24px; right: 24px; background: #1a1a1a; color: #fff; padding: 10px 18px; border-radius: 8px; font-size: 13px; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 300; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-card">
+    <div class="logo"><i class="ti ti-calendar"></i></div>
+    <h1>Chefinloggning</h1>
+    <p>Logga in för att hantera schemat</p>
+    <input type="password" id="pw-input" placeholder="Lösenord" onkeydown="if(event.key==='Enter')login()">
+    <button onclick="login()">Logga in</button>
+    <div class="login-err" id="login-err">Fel lösenord, försök igen.</div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-left">
+      <i class="ti ti-calendar" style="font-size:22px;color:#185FA5"></i>
+      <h1>Schema</h1>
+      <span class="badge-chef"><i class="ti ti-shield-check" style="font-size:11px"></i> Chef</span>
+    </div>
+    <div class="nav-week">
+      <button onclick="changeWeek(-1)"><i class="ti ti-chevron-left"></i></button>
+      <span class="week-label" id="week-label"></span>
+      <button onclick="changeWeek(1)"><i class="ti ti-chevron-right"></i></button>
+    </div>
+    <div class="topbar-right">
+      <button class="add-btn" onclick="openModal()"><i class="ti ti-plus"></i> Lägg till pass</button>
+      <button class="logout-btn" onclick="logout()">Logga ut</button>
+    </div>
+  </div>
+
+  <div class="summary" id="summary"></div>
+
+  <div class="schedule">
+    <div class="header-row">
+      <div class="corner"></div>
+      <div class="header-day" id="hd0"></div>
+      <div class="header-day" id="hd1"></div>
+      <div class="header-day" id="hd2"></div>
+      <div class="header-day" id="hd3"></div>
+      <div class="header-day" id="hd4"></div>
+      <div class="header-day" id="hd5"></div>
+      <div class="header-day" id="hd6"></div>
+    </div>
+    <div id="emp-rows"></div>
+  </div>
+</div>
+
+<div id="modal" class="modal-overlay" onclick="closeIfOutside(event)">
+  <div class="modal">
+    <h2 id="modal-title">Lägg till pass</h2>
+    <div class="field"><label>Anställd</label><select id="sel-emp"></select></div>
+    <div class="field">
+      <label>Dag & Datum</label>
+      <select id="sel-day"></select>
+    </div>
+    <input type="hidden" id="sel-week-id">
+    
+    <div class="time-row">
+      <div class="field"><label>Starttid</label><input type="time" id="sel-start" value="08:00"></div>
+      <div class="field"><label>Sluttid</label><input type="time" id="sel-end" value="16:00"></div>
+    </div>
+    <div class="field">
+      <label>Färg</label>
+      <select id="sel-color">
+        <option value="s-blue">Blå</option><option value="s-green">Grön</option>
+        <option value="s-amber">Gul</option><option value="s-purple">Lila</option>
+        <option value="s-coral">Korall</option><option value="s-teal">Turkos</option>
+      </select>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Avbryt</button>
+      <button class="btn-save" onclick="saveShift()" id="modal-save-btn">Spara pass</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const CHEF_PASSWORD = "chef123";
+  const STORAGE_KEY = "quinyx_shifts_v1";
+
+  const employees = [
+    { id: 1, name: "Anna S.",   role: "Kassör",  color: "#CECBF6", tc: "#26215C" },
+    { id: 2, name: "Marcus L.",role: "Säljare", color: "#9FE1CB", tc: "#04342C" },
+    { id: 3, name: "Sara K.",  role: "Lager",   color: "#F5C4B3", tc: "#4A1B0C" },
+    { id: 4, name: "Erik H.",  role: "Säljare", color: "#FAC775", tc: "#412402" },
+    { id: 5, name: "Lena B.",  role: "Chef",    color: "#B5D4F4", tc: "#042C53" },
+  ];
+
+  // FIX: Lagt till en 'weekId'-egenskap på standardpassen så de inte visas på alla veckor
+  const defaultShifts = [
+    { id:1,  emp:1, day:0, weekId:"2026-W25", start:"08:00", end:"16:00", color:"s-blue"   },
+    { id:2,  emp:2, day:0, weekId:"2026-W25", start:"14:00", end:"22:00", color:"s-teal"   },
+    { id:3,  emp:3, day:1, weekId:"2026-W25", start:"07:00", end:"15:00", color:"s-coral"  },
+    { id:4,  emp:5, day:0, weekId:"2026-W25", start:"09:00", end:"17:00", color:"s-blue"   },
+    { id:5,  emp:1, day:2, weekId:"2026-W25", start:"08:00", end:"16:00", color:"s-blue"   },
+    { id:6,  emp:4, day:3, weekId:"2026-W25", start:"12:00", end:"20:00", color:"s-amber"  },
+    { id:7,  emp:2, day:4, weekId:"2026-W25", start:"08:00", end:"14:00", color:"s-teal"   },
+    { id:8,  emp:5, day:4, weekId:"2026-W25", start:"09:00", end:"17:00", color:"s-blue"   },
+    { id:9,  emp:3, day:5, weekId:"2026-W25", start:"10:00", end:"18:00", color:"s-coral"  },
+    { id:10, emp:4, day:1, weekId:"2026-W25", start:"08:00", end:"16:00", color:"s-amber"  },
+  ];
+
+  function loadShifts() {
+    try { 
+      const d = localStorage.getItem(STORAGE_KEY); 
+      if(d) {
+        let parsed = JSON.parse(d);
+        // Säkerställ att gamla sparade pass också får ett standard-weekId om det saknas
+        parsed.forEach(s => { if(!s.weekId) s.weekId = "2026-W25"; });
+        return parsed;
+      }
+      return defaultShifts;
+    }
+    catch(e) { return defaultShifts; }
+  }
+  function saveShifts() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(shifts));
+  }
+
+  let shifts = loadShifts();
+  let nextId = Math.max(...shifts.map(s=>s.id), 10) + 1;
+  let weekOffset = 0;
+  let editId = null;
+
+  function login() {
+    const val = document.getElementById("pw-input").value;
+    if(val === CHEF_PASSWORD) {
+      document.getElementById("login-screen").style.display = "none";
+      document.getElementById("app").style.display = "block";
+      render();
+    } else {
+      document.getElementById("login-err").style.display = "block";
+      document.getElementById("pw-input").value = "";
+    }
+  }
+
+  function logout() {
+    document.getElementById("login-screen").style.display = "flex";
+    document.getElementById("app").style.display = "none";
+    document.getElementById("pw-input").value = "";
+  }
+
+  function initials(n) { return n.split(" ").map(x=>x[0]).join("").toUpperCase(); }
+  const days = ["Mån","Tis","Ons","Tor","Fre","Lör","Sön"];
+  const fullDays = ["Måndag","Tisdag","Onsdag","Torsdag","Fredag","Lördag","Söndag"];
+
+  function getMondayOfWeek(offset) {
+    const now = new Date(); const day = now.getDay();
+    const diff = (day===0?-6:1-day); const mon = new Date(now);
+    mon.setDate(now.getDate()+diff+offset*7); mon.setHours(0,0,0,0); return mon;
+  }
+  function formatDate(d) { return d.getDate()+"/"+(d.getMonth()+1); }
+  function isToday(d) { const t=new Date(); t.setHours(0,0,0,0); return d.getTime()===t.getTime(); }
+  function getDuration(s,e) {
+    const [sh,sm]=s.split(":").map(Number); const [eh,em]=e.split(":").map(Number);
+    return ((eh*60+em)-(sh*60+sm))/60;
+  }
+  
+  // Skapar en unik sträng för varje vecka (ex: "2026-W25")
+  function getWeekIdentifier(d) {
+    const date=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+    const dn=date.getUTCDay()||7; date.setUTCDate(date.getUTCDate()+4-dn);
+    const ys=new Date(Date.UTC(date.getUTCFullYear(),0,1));
+    const wNum = Math.ceil((((date-ys)/86400000)+1)/7);
+    return date.getUTCFullYear() + "-W" + wNum;
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById("toast"); t.textContent = msg; t.classList.add("show");
+    setTimeout(()=>t.classList.remove("show"), 2200);
+  }
+
+  // Uppdaterar rullistan i rutan med dynamiska datum baserat på vald vecka
+  function updateDaySelectOptions(mon) {
+    const daySelect = document.getElementById("sel-day");
+    daySelect.innerHTML = fullDays.map((name, i) => {
+      const d = new Date(mon);
+      d.setDate(mon.getDate() + i);
+      return `<option value="${i}">${name} (${d.getDate()}/${d.getMonth()+1})</option>`;
+    }).join("");
+  }
+
+  function render() {
+    const mon = getMondayOfWeek(weekOffset);
+    const currentWeekId = getWeekIdentifier(mon);
+    const dates = Array.from({length:7},(_,i)=>{ const d=new Date(mon); d.setDate(mon.getDate()+i); return d; });
+    
+    document.getElementById("week-label").textContent = "Vecka "+currentWeekId.split("-W")[1]+" · "+formatDate(dates[0])+" – "+formatDate(dates[6]);
+    
+    days.forEach((d,i)=>{
+      const el=document.getElementById("hd"+i);
+      el.innerHTML=`<span style="font-size:11px">${d}</span><span class="date-num">${dates[i].getDate()}</span>`;
+      isToday(dates[i])?el.classList.add("today"):el.classList.remove("today");
+    });
+    
+    document.getElementById("sel-emp").innerHTML = employees.map(e=>`<option value="${e.id}">${e.name}</option>`).join("");
+    
+    const rows = document.getElementById("emp-rows");
+    rows.innerHTML = employees.map(emp => {
+      const cells = Array.from({length:7},(_, di)=>{
+        // FIX: Filtrerar nu även på weekId så att bara den aktuella veckans pass syns!
+        const ds = shifts.filter(s=>s.emp===emp.id && s.day===di && s.weekId === currentWeekId);
+        
+        const html = ds.map(s=>
+          `<div class="shift ${s.color}" onclick="openEdit(event, ${s.id})" title="Redigera">
+            <span class="time">${s.start}–${s.end}</span>
+            <button class="del" onclick="event.stopPropagation();deleteShift(${s.id})">✕</button>
+          </div>`).join("");
+        return `<div class="day-cell" onclick="openModalForCell(${emp.id},${di})">${html}${ds.length===0?'<div class="empty-hint">+ lägg till</div>':''}</div>`;
+      });
+      return `<div class="emp-row">
+        <div class="emp-name">
+          <div class="avatar" style="background:${emp.color};color:${emp.tc}">${initials(emp.name)}</div>
+          <div class="emp-info"><div class="name">${emp.name}</div><div class="role">${emp.role}</div></div>
+        </div>${cells.join("")}</div>`;
+    }).join("");
+
+    // FIX: Summeringen räknar nu bara timmar och pass för den aktuella veckan
+    const weekShifts = shifts.filter(s => s.weekId === currentWeekId);
+    const total = weekShifts.length;
+    const hours = Math.round(weekShifts.reduce((a,s)=>a+getDuration(s.start,s.end),0));
+    const staffed = new Set(weekShifts.map(s=>s.day)).size;
+    
+    document.getElementById("summary").innerHTML = `
+      <div class="stat"><div class="slabel">Pass</div><div class="sval">${total}</div></div>
+      <div class="stat"><div class="slabel">Timmar</div><div class="sval">${hours}</div></div>
+      <div class="stat"><div class="slabel">Bemannade dagar</div><div class="sval">${staffed}/7</div></div>
+      <div class="stat"><div class="slabel">Personal</div><div class="sval">${employees.length}</div></div>`;
+  }
+
+  function changeWeek(dir) { weekOffset+=dir; render(); }
+
+  function openModal(empId=null, dayIdx=null) {
+    editId=null;
+    const mon = getMondayOfWeek(weekOffset);
+    
+    document.getElementById("modal-title").textContent="Lägg till pass";
+    document.getElementById("modal-save-btn").textContent="Spara pass";
+    document.getElementById("sel-week-id").value = getWeekIdentifier(mon);
+    
+    updateDaySelectOptions(mon);
+    
+    if(empId) document.getElementById("sel-emp").value=empId;
+    if(dayIdx!==null) document.getElementById("sel-day").value=dayIdx;
+    document.getElementById("sel-start").value="08:00";
+    document.getElementById("sel-end").value="16:00";
+    document.getElementById("sel-color").value="s-blue";
+    document.getElementById("modal").classList.add("open");
+  }
+  
+  function openModalForCell(empId,dayIdx) { openModal(empId,dayIdx); }
+  
+  function openEdit(e, id) {
+    if(e) e.stopPropagation(); 
+    const s=shifts.find(x=>x.id===id); if(!s) return;
+    editId=id;
+    
+    const mon = getMondayOfWeek(weekOffset);
+    updateDaySelectOptions(mon);
+    
+    document.getElementById("modal-title").textContent="Redigera pass";
+    document.getElementById("modal-save-btn").textContent="Uppdatera pass";
+    document.getElementById("sel-week-id").value = s.weekId;
+    document.getElementById("sel-emp").value = s.emp;
+    document.getElementById("sel-day").value = s.day;
+    document.getElementById("sel-start").value = s.start;
+    document.getElementById("sel-end").value = s.end;
+    document.getElementById("sel-color").value = s.color;
+    document.getElementById("modal").classList.add("open");
+  }
+  
+  function closeModal() { document.getElementById("modal").classList.remove("open"); editId=null; }
+  function closeIfOutside(e) { if(e.target.id==="modal") closeModal(); }
+
+  function saveShift() {
+    const emp=parseInt(document.getElementById("sel-emp").value);
+    const day=parseInt(document.getElementById("sel-day").value);
+    const weekId=document.getElementById("sel-week-id").value;
+    const start=document.getElementById("sel-start").value;
+    const end=document.getElementById("sel-end").value;
+    const color=document.getElementById("sel-color").value;
+    if(start>=end){alert("Sluttid måste vara efter starttid!"); return;}
+    
+    if(editId!==null) { 
+      const s=shifts.find(x=>x.id===editId); 
+      Object.assign(s,{emp,day,weekId,start,end,color}); 
+      showToast("Pass uppdaterat"); 
+    }
+    else { 
+      shifts.push({id:nextId++,emp,day,weekId,start,end,color}); 
+      showToast("Pass tillagt"); 
+    }
+    saveShifts(); closeModal(); render();
+  }
+  
+  function deleteShift(id) {
+    if(confirm("Ta bort detta pass?")) {
+      shifts=shifts.filter(s=>s.id!==id); saveShifts(); render(); showToast("Pass borttaget");
+    }
+  }
+</script>
+</body>
+</html><!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Schema – Chefvy</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f5f5f3; color: #1a1a1a; min-height: 100vh; }
+
+    #login-screen {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #f5f5f3;
+    }
+    .login-card {
+      background: #fff; border: 1px solid #e5e5e5; border-radius: 14px; padding: 2.5rem 2rem; width: 320px; text-align: center;
+    }
+    .login-card .logo { font-size: 32px; color: #185FA5; margin-bottom: 1rem; }
+    .login-card h1 { font-size: 18px; font-weight: 500; margin-bottom: 0.3rem; }
+    .login-card p { font-size: 13px; color: #888; margin-bottom: 1.5rem; }
+    .login-card input { width: 100%; font-size: 15px; padding: 9px 12px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 12px; }
+    .login-card button { width: 100%; background: #185FA5; color: #E6F1FB; border: none; border-radius: 8px; padding: 10px; font-size: 15px; cursor: pointer; }
+    .login-card button:hover { background: #0C447C; }
+    .login-err { color: #A32D2D; font-size: 13px; margin-top: 8px; display: none; }
+
+    #app { display: none; padding: 1.5rem; max-width: 1100px; margin: 0 auto; }
+
+    .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 12px; }
+    .topbar-left { display: flex; align-items: center; gap: 10px; }
+    .topbar h1 { font-size: 20px; font-weight: 500; }
+    .badge-chef { background: #B5D4F4; color: #042C53; font-size: 11px; padding: 3px 9px; border-radius: 20px; font-weight: 500; }
+    .nav-week { display: flex; align-items: center; gap: 8px; }
+    .nav-week button { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 6px 10px; cursor: pointer; font-size: 14px; }
+    .nav-week button:hover { background: #f0f0f0; }
+    .week-label { font-size: 14px; color: #666; min-width: 160px; text-align: center; }
+    .topbar-right { display: flex; gap: 8px; }
+    .add-btn { background: #185FA5; color: #E6F1FB; border: none; border-radius: 8px; padding: 8px 14px; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 6px; }
+    .add-btn:hover { background: #0C447C; }
+    .logout-btn { background: none; border: 1px solid #ddd; border-radius: 8px; padding: 8px 12px; cursor: pointer; font-size: 14px; color: #666; display: flex; align-items: center; gap: 5px; }
+    .logout-btn:hover { background: #fef2f2; border-color: #f09595; color: #A32D2D; }
+
+    .summary { display: flex; gap: 12px; margin-bottom: 1.25rem; flex-wrap: wrap; }
+    .stat { background: #fff; border-radius: 8px; padding: 12px 16px; flex: 1; min-width: 90px; border: 1px solid #e5e5e5; }
+    .stat .slabel { font-size: 12px; color: #888; }
+    .stat .sval { font-size: 22px; font-weight: 500; }
+
+    .schedule { border: 1px solid #e5e5e5; border-radius: 12px; overflow: hidden; background: #fff; }
+    .header-row { display: grid; grid-template-columns: 140px repeat(7, 1fr); background: #f9f9f7; border-bottom: 1px solid #e5e5e5; }
+    .corner { border-right: 1px solid #e5e5e5; }
+    .header-day { padding: 10px 4px; text-align: center; font-size: 12px; color: #888; border-right: 1px solid #e5e5e5; }
+    .header-day:last-child { border-right: none; }
+    .header-day.today { color: #185FA5; font-weight: 500; }
+    .header-day .date-num { font-size: 18px; font-weight: 500; display: block; }
+    .emp-row { display: grid; grid-template-columns: 140px repeat(7, 1fr); border-bottom: 1px solid #e5e5e5; min-height: 60px; }
+    .emp-row:last-child { border-bottom: none; }
+    .emp-name { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-right: 1px solid #e5e5e5; background: #fafafa; }
+    .avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; flex-shrink: 0; }
+    .emp-info .name { font-size: 13px; font-weight: 500; }
+    .emp-info .role { font-size: 11px; color: #888; }
+    
+    /* Cell-hovering */
+    .day-cell { border-right: 1px solid #e5e5e5; padding: 4px; display: flex; flex-direction: column; gap: 3px; cursor: pointer; transition: background 0.15s; justify-content: center; }
+    .day-cell:last-child { border-right: none; }
+    .day-cell:hover { background: #f2f7fe; }
+    .day-cell:hover .empty-hint { opacity: 1; }
+
+    .shift { border-radius: 4px; padding: 4px 8px; font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; position: relative; }
+    .shift:hover { filter: brightness(0.95); }
+    .shift .time { font-weight: 500; }
+    .shift .del { opacity: 0; font-size: 11px; cursor: pointer; background: none; border: none; padding: 0 2px; color: inherit; transition: opacity 0.15s; }
+    .shift:hover .del { opacity: 0.7; }
+    .shift .del:hover { opacity: 1; font-weight: bold; }
+
+    .s-blue   { background: #B5D4F4; color: #042C53; }
+    .s-green  { background: #C0DD97; color: #173404; }
+    .s-amber  { background: #FAC775; color: #412402; }
+    .s-purple { background: #CECBF6; color: #26215C; }
+    .s-coral  { background: #F5C4B3; color: #4A1B0C; }
+    .s-teal   { background: #9FE1CB; color: #04342C; }
+    
+    .empty-hint { font-size: 10px; color: #a0b2c6; text-align: center; padding: 4px 0; opacity: 0; transition: opacity 0.15s; pointer-events: none; }
+
+    .modal-overlay { display: none; min-height: 100vh; background: rgba(0,0,0,0.35); align-items: center; justify-content: center; position: fixed; inset: 0; z-index: 200; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: #fff; border-radius: 12px; border: 1px solid #e5e5e5; padding: 1.5rem; width: 340px; }
+    .modal h2 { font-size: 16px; font-weight: 500; margin-bottom: 1rem; }
+    .field { margin-bottom: 12px; }
+    .field label { font-size: 12px; color: #666; display: block; margin-bottom: 4px; }
+    .field select, .field input[type="time"] { width: 100%; font-size: 14px; padding: 7px 10px; border: 1px solid #ddd; border-radius: 8px; background: #fff; color: #1a1a1a; }
+    .time-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .modal-btns { display: flex; gap: 8px; margin-top: 1.25rem; justify-content: flex-end; }
+    .modal-btns button { padding: 8px 18px; border-radius: 8px; font-size: 14px; cursor: pointer; }
+    .btn-cancel { background: none; border: 1px solid #ddd; color: #333; }
+    .btn-cancel:hover { background: #f0f0f0; }
+    .btn-save { background: #185FA5; color: #E6F1FB; border: none; }
+    .btn-save:hover { background: #0C447C; }
+
+    .toast { position: fixed; bottom: 24px; right: 24px; background: #1a1a1a; color: #fff; padding: 10px 18px; border-radius: 8px; font-size: 13px; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 300; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-card">
+    <div class="logo"><i class="ti ti-calendar"></i></div>
+    <h1>Chefinloggning</h1>
+    <p>Logga in för att hantera schemat</p>
+    <input type="password" id="pw-input" placeholder="Lösenord" onkeydown="if(event.key==='Enter')login()">
+    <button onclick="login()">Logga in</button>
+    <div class="login-err" id="login-err">Fel lösenord, försök igen.</div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-left">
+      <i class="ti ti-calendar" style="font-size:22px;color:#185FA5"></i>
+      <h1>Schema</h1>
+      <span class="badge-chef"><i class="ti ti-shield-check" style="font-size:11px"></i> Chef</span>
+    </div>
+    <div class="nav-week">
+      <button onclick="changeWeek(-1)"><i class="ti ti-chevron-left"></i></button>
+      <span class="week-label" id="week-label"></span>
+      <button onclick="changeWeek(1)"><i class="ti ti-chevron-right"></i></button>
+    </div>
+    <div class="topbar-right">
+      <button class="add-btn" onclick="openModal()"><i class="ti ti-plus"></i> Lägg till pass</button>
+      <button class="logout-btn" onclick="logout()">Logga ut</button>
+    </div>
+  </div>
+
+  <div class="summary" id="summary"></div>
+
+  <div class="schedule">
+    <div class="header-row">
+      <div class="corner"></div>
+      <div class="header-day" id="hd0"></div>
+      <div class="header-day" id="hd1"></div>
+      <div class="header-day" id="hd2"></div>
+      <div class="header-day" id="hd3"></div>
+      <div class="header-day" id="hd4"></div>
+      <div class="header-day" id="hd5"></div>
+      <div class="header-day" id="hd6"></div>
+    </div>
+    <div id="emp-rows"></div>
+  </div>
+</div>
+
+<div id="modal" class="modal-overlay" onclick="closeIfOutside(event)">
+  <div class="modal">
+    <h2 id="modal-title">Lägg till pass</h2>
+    <div class="field"><label>Anställd</label><select id="sel-emp"></select></div>
+    <div class="field">
+      <label>Dag & Datum</label>
+      <select id="sel-day"></select>
+    </div>
+    <input type="hidden" id="sel-week-id">
+    
+    <div class="time-row">
+      <div class="field"><label>Starttid</label><input type="time" id="sel-start" value="08:00"></div>
+      <div class="field"><label>Sluttid</label><input type="time" id="sel-end" value="16:00"></div>
+    </div>
+    <div class="field">
+      <label>Färg</label>
+      <select id="sel-color">
+        <option value="s-blue">Blå</option><option value="s-green">Grön</option>
+        <option value="s-amber">Gul</option><option value="s-purple">Lila</option>
+        <option value="s-coral">Korall</option><option value="s-teal">Turkos</option>
+      </select>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Avbryt</button>
+      <button class="btn-save" onclick="saveShift()" id="modal-save-btn">Spara pass</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const CHEF_PASSWORD = "chef123";
+  const STORAGE_KEY = "quinyx_shifts_v1";
+
+  const employees = [
+    { id: 1, name: "Anna S.",   role: "Kassör",  color: "#CECBF6", tc: "#26215C" },
+    { id: 2, name: "Marcus L.",role: "Säljare", color: "#9FE1CB", tc: "#04342C" },
+    { id: 3, name: "Sara K.",  role: "Lager",   color: "#F5C4B3", tc: "#4A1B0C" },
+    { id: 4, name: "Erik H.",  role: "Säljare", color: "#FAC775", tc: "#412402" },
+    { id: 5, name: "Lena B.",  role: "Chef",    color: "#B5D4F4", tc: "#042C53" },
+  ];
+
+  // FIX: Lagt till en 'weekId'-egenskap på standardpassen så de inte visas på alla veckor
+  const defaultShifts = [
+    { id:1,  emp:1, day:0, weekId:"2026-W25", start:"08:00", end:"16:00", color:"s-blue"   },
+    { id:2,  emp:2, day:0, weekId:"2026-W25", start:"14:00", end:"22:00", color:"s-teal"   },
+    { id:3,  emp:3, day:1, weekId:"2026-W25", start:"07:00", end:"15:00", color:"s-coral"  },
+    { id:4,  emp:5, day:0, weekId:"2026-W25", start:"09:00", end:"17:00", color:"s-blue"   },
+    { id:5,  emp:1, day:2, weekId:"2026-W25", start:"08:00", end:"16:00", color:"s-blue"   },
+    { id:6,  emp:4, day:3, weekId:"2026-W25", start:"12:00", end:"20:00", color:"s-amber"  },
+    { id:7,  emp:2, day:4, weekId:"2026-W25", start:"08:00", end:"14:00", color:"s-teal"   },
+    { id:8,  emp:5, day:4, weekId:"2026-W25", start:"09:00", end:"17:00", color:"s-blue"   },
+    { id:9,  emp:3, day:5, weekId:"2026-W25", start:"10:00", end:"18:00", color:"s-coral"  },
+    { id:10, emp:4, day:1, weekId:"2026-W25", start:"08:00", end:"16:00", color:"s-amber"  },
+  ];
+
+  function loadShifts() {
+    try { 
+      const d = localStorage.getItem(STORAGE_KEY); 
+      if(d) {
+        let parsed = JSON.parse(d);
+        // Säkerställ att gamla sparade pass också får ett standard-weekId om det saknas
+        parsed.forEach(s => { if(!s.weekId) s.weekId = "2026-W25"; });
+        return parsed;
+      }
+      return defaultShifts;
+    }
+    catch(e) { return defaultShifts; }
+  }
+  function saveShifts() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(shifts));
+  }
+
+  let shifts = loadShifts();
+  let nextId = Math.max(...shifts.map(s=>s.id), 10) + 1;
+  let weekOffset = 0;
+  let editId = null;
+
+  function login() {
+    const val = document.getElementById("pw-input").value;
+    if(val === CHEF_PASSWORD) {
+      document.getElementById("login-screen").style.display = "none";
+      document.getElementById("app").style.display = "block";
+      render();
+    } else {
+      document.getElementById("login-err").style.display = "block";
+      document.getElementById("pw-input").value = "";
+    }
+  }
+
+  function logout() {
+    document.getElementById("login-screen").style.display = "flex";
+    document.getElementById("app").style.display = "none";
+    document.getElementById("pw-input").value = "";
+  }
+
+  function initials(n) { return n.split(" ").map(x=>x[0]).join("").toUpperCase(); }
+  const days = ["Mån","Tis","Ons","Tor","Fre","Lör","Sön"];
+  const fullDays = ["Måndag","Tisdag","Onsdag","Torsdag","Fredag","Lördag","Söndag"];
+
+  function getMondayOfWeek(offset) {
+    const now = new Date(); const day = now.getDay();
+    const diff = (day===0?-6:1-day); const mon = new Date(now);
+    mon.setDate(now.getDate()+diff+offset*7); mon.setHours(0,0,0,0); return mon;
+  }
+  function formatDate(d) { return d.getDate()+"/"+(d.getMonth()+1); }
+  function isToday(d) { const t=new Date(); t.setHours(0,0,0,0); return d.getTime()===t.getTime(); }
+  function getDuration(s,e) {
+    const [sh,sm]=s.split(":").map(Number); const [eh,em]=e.split(":").map(Number);
+    return ((eh*60+em)-(sh*60+sm))/60;
+  }
+  
+  // Skapar en unik sträng för varje vecka (ex: "2026-W25")
+  function getWeekIdentifier(d) {
+    const date=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+    const dn=date.getUTCDay()||7; date.setUTCDate(date.getUTCDate()+4-dn);
+    const ys=new Date(Date.UTC(date.getUTCFullYear(),0,1));
+    const wNum = Math.ceil((((date-ys)/86400000)+1)/7);
+    return date.getUTCFullYear() + "-W" + wNum;
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById("toast"); t.textContent = msg; t.classList.add("show");
+    setTimeout(()=>t.classList.remove("show"), 2200);
+  }
+
+  // Uppdaterar rullistan i rutan med dynamiska datum baserat på vald vecka
+  function updateDaySelectOptions(mon) {
+    const daySelect = document.getElementById("sel-day");
+    daySelect.innerHTML = fullDays.map((name, i) => {
+      const d = new Date(mon);
+      d.setDate(mon.getDate() + i);
+      return `<option value="${i}">${name} (${d.getDate()}/${d.getMonth()+1})</option>`;
+    }).join("");
+  }
+
+  function render() {
+    const mon = getMondayOfWeek(weekOffset);
+    const currentWeekId = getWeekIdentifier(mon);
+    const dates = Array.from({length:7},(_,i)=>{ const d=new Date(mon); d.setDate(mon.getDate()+i); return d; });
+    
+    document.getElementById("week-label").textContent = "Vecka "+currentWeekId.split("-W")[1]+" · "+formatDate(dates[0])+" – "+formatDate(dates[6]);
+    
+    days.forEach((d,i)=>{
+      const el=document.getElementById("hd"+i);
+      el.innerHTML=`<span style="font-size:11px">${d}</span><span class="date-num">${dates[i].getDate()}</span>`;
+      isToday(dates[i])?el.classList.add("today"):el.classList.remove("today");
+    });
+    
+    document.getElementById("sel-emp").innerHTML = employees.map(e=>`<option value="${e.id}">${e.name}</option>`).join("");
+    
+    const rows = document.getElementById("emp-rows");
+    rows.innerHTML = employees.map(emp => {
+      const cells = Array.from({length:7},(_, di)=>{
+        // FIX: Filtrerar nu även på weekId så att bara den aktuella veckans pass syns!
+        const ds = shifts.filter(s=>s.emp===emp.id && s.day===di && s.weekId === currentWeekId);
+        
+        const html = ds.map(s=>
+          `<div class="shift ${s.color}" onclick="openEdit(event, ${s.id})" title="Redigera">
+            <span class="time">${s.start}–${s.end}</span>
+            <button class="del" onclick="event.stopPropagation();deleteShift(${s.id})">✕</button>
+          </div>`).join("");
+        return `<div class="day-cell" onclick="openModalForCell(${emp.id},${di})">${html}${ds.length===0?'<div class="empty-hint">+ lägg till</div>':''}</div>`;
+      });
+      return `<div class="emp-row">
+        <div class="emp-name">
+          <div class="avatar" style="background:${emp.color};color:${emp.tc}">${initials(emp.name)}</div>
+          <div class="emp-info"><div class="name">${emp.name}</div><div class="role">${emp.role}</div></div>
+        </div>${cells.join("")}</div>`;
+    }).join("");
+
+    // FIX: Summeringen räknar nu bara timmar och pass för den aktuella veckan
+    const weekShifts = shifts.filter(s => s.weekId === currentWeekId);
+    const total = weekShifts.length;
+    const hours = Math.round(weekShifts.reduce((a,s)=>a+getDuration(s.start,s.end),0));
+    const staffed = new Set(weekShifts.map(s=>s.day)).size;
+    
+    document.getElementById("summary").innerHTML = `
+      <div class="stat"><div class="slabel">Pass</div><div class="sval">${total}</div></div>
+      <div class="stat"><div class="slabel">Timmar</div><div class="sval">${hours}</div></div>
+      <div class="stat"><div class="slabel">Bemannade dagar</div><div class="sval">${staffed}/7</div></div>
+      <div class="stat"><div class="slabel">Personal</div><div class="sval">${employees.length}</div></div>`;
+  }
+
+  function changeWeek(dir) { weekOffset+=dir; render(); }
+
+  function openModal(empId=null, dayIdx=null) {
+    editId=null;
+    const mon = getMondayOfWeek(weekOffset);
+    
+    document.getElementById("modal-title").textContent="Lägg till pass";
+    document.getElementById("modal-save-btn").textContent="Spara pass";
+    document.getElementById("sel-week-id").value = getWeekIdentifier(mon);
+    
+    updateDaySelectOptions(mon);
+    
+    if(empId) document.getElementById("sel-emp").value=empId;
+    if(dayIdx!==null) document.getElementById("sel-day").value=dayIdx;
+    document.getElementById("sel-start").value="08:00";
+    document.getElementById("sel-end").value="16:00";
+    document.getElementById("sel-color").value="s-blue";
+    document.getElementById("modal").classList.add("open");
+  }
+  
+  function openModalForCell(empId,dayIdx) { openModal(empId,dayIdx); }
+  
+  function openEdit(e, id) {
+    if(e) e.stopPropagation(); 
+    const s=shifts.find(x=>x.id===id); if(!s) return;
+    editId=id;
+    
+    const mon = getMondayOfWeek(weekOffset);
+    updateDaySelectOptions(mon);
+    
+    document.getElementById("modal-title").textContent="Redigera pass";
+    document.getElementById("modal-save-btn").textContent="Uppdatera pass";
+    document.getElementById("sel-week-id").value = s.weekId;
+    document.getElementById("sel-emp").value = s.emp;
+    document.getElementById("sel-day").value = s.day;
+    document.getElementById("sel-start").value = s.start;
+    document.getElementById("sel-end").value = s.end;
+    document.getElementById("sel-color").value = s.color;
+    document.getElementById("modal").classList.add("open");
+  }
+  
+  function closeModal() { document.getElementById("modal").classList.remove("open"); editId=null; }
+  function closeIfOutside(e) { if(e.target.id==="modal") closeModal(); }
+
+  function saveShift() {
+    const emp=parseInt(document.getElementById("sel-emp").value);
+    const day=parseInt(document.getElementById("sel-day").value);
+    const weekId=document.getElementById("sel-week-id").value;
+    const start=document.getElementById("sel-start").value;
+    const end=document.getElementById("sel-end").value;
+    const color=document.getElementById("sel-color").value;
+    if(start>=end){alert("Sluttid måste vara efter starttid!"); return;}
+    
+    if(editId!==null) { 
+      const s=shifts.find(x=>x.id===editId); 
+      Object.assign(s,{emp,day,weekId,start,end,color}); 
+      showToast("Pass uppdaterat"); 
+    }
+    else { 
+      shifts.push({id:nextId++,emp,day,weekId,start,end,color}); 
+      showToast("Pass tillagt"); 
+    }
+    saveShifts(); closeModal(); render();
+  }
+  
+  function deleteShift(id) {
+    if(confirm("Ta bort detta pass?")) {
+      shifts=shifts.filter(s=>s.id!==id); saveShifts(); render(); showToast("Pass borttaget");
+    }
+  }
+</script>
+</body>
+</html><!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Schema – Chefvy</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f5f5f3; color: #1a1a1a; min-height: 100vh; }
+
+    #login-screen {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #f5f5f3;
+    }
+    .login-card {
+      background: #fff; border: 1px solid #e5e5e5; border-radius: 14px; padding: 2.5rem 2rem; width: 320px; text-align: center;
+    }
+    .login-card .logo { font-size: 32px; color: #185FA5; margin-bottom: 1rem; }
+    .login-card h1 { font-size: 18px; font-weight: 500; margin-bottom: 0.3rem; }
+    .login-card p { font-size: 13px; color: #888; margin-bottom: 1.5rem; }
+    .login-card input { width: 100%; font-size: 15px; padding: 9px 12px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 12px; }
+    .login-card button { width: 100%; background: #185FA5; color: #E6F1FB; border: none; border-radius: 8px; padding: 10px; font-size: 15px; cursor: pointer; }
+    .login-card button:hover { background: #0C447C; }
+    .login-err { color: #A32D2D; font-size: 13px; margin-top: 8px; display: none; }
+
+    #app { display: none; padding: 1.5rem; max-width: 1100px; margin: 0 auto; }
+
+    .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 12px; }
+    .topbar-left { display: flex; align-items: center; gap: 10px; }
+    .topbar h1 { font-size: 20px; font-weight: 500; }
+    .badge-chef { background: #B5D4F4; color: #042C53; font-size: 11px; padding: 3px 9px; border-radius: 20px; font-weight: 500; }
+    .nav-week { display: flex; align-items: center; gap: 8px; }
+    .nav-week button { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 6px 10px; cursor: pointer; font-size: 14px; }
+    .nav-week button:hover { background: #f0f0f0; }
+    .week-label { font-size: 14px; color: #666; min-width: 160px; text-align: center; }
+    .topbar-right { display: flex; gap: 8px; }
+    .add-btn { background: #185FA5; color: #E6F1FB; border: none; border-radius: 8px; padding: 8px 14px; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 6px; }
+    .add-btn:hover { background: #0C447C; }
+    .logout-btn { background: none; border: 1px solid #ddd; border-radius: 8px; padding: 8px 12px; cursor: pointer; font-size: 14px; color: #666; display: flex; align-items: center; gap: 5px; }
+    .logout-btn:hover { background: #fef2f2; border-color: #f09595; color: #A32D2D; }
+
+    .summary { display: flex; gap: 12px; margin-bottom: 1.25rem; flex-wrap: wrap; }
+    .stat { background: #fff; border-radius: 8px; padding: 12px 16px; flex: 1; min-width: 90px; border: 1px solid #e5e5e5; }
+    .stat .slabel { font-size: 12px; color: #888; }
+    .stat .sval { font-size: 22px; font-weight: 500; }
+
+    .schedule { border: 1px solid #e5e5e5; border-radius: 12px; overflow: hidden; background: #fff; }
+    .header-row { display: grid; grid-template-columns: 140px repeat(7, 1fr); background: #f9f9f7; border-bottom: 1px solid #e5e5e5; }
+    .corner { border-right: 1px solid #e5e5e5; }
+    .header-day { padding: 10px 4px; text-align: center; font-size: 12px; color: #888; border-right: 1px solid #e5e5e5; }
+    .header-day:last-child { border-right: none; }
+    .header-day.today { color: #185FA5; font-weight: 500; }
+    .header-day .date-num { font-size: 18px; font-weight: 500; display: block; }
+    .emp-row { display: grid; grid-template-columns: 140px repeat(7, 1fr); border-bottom: 1px solid #e5e5e5; min-height: 60px; }
+    .emp-row:last-child { border-bottom: none; }
+    .emp-name { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-right: 1px solid #e5e5e5; background: #fafafa; }
+    .avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; flex-shrink: 0; }
+    .emp-info .name { font-size: 13px; font-weight: 500; }
+    .emp-info .role { font-size: 11px; color: #888; }
+    
+    /* Cell-hovering */
+    .day-cell { border-right: 1px solid #e5e5e5; padding: 4px; display: flex; flex-direction: column; gap: 3px; cursor: pointer; transition: background 0.15s; justify-content: center; }
+    .day-cell:last-child { border-right: none; }
+    .day-cell:hover { background: #f2f7fe; }
+    .day-cell:hover .empty-hint { opacity: 1; }
+
+    .shift { border-radius: 4px; padding: 4px 8px; font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; position: relative; }
+    .shift:hover { filter: brightness(0.95); }
+    .shift .time { font-weight: 500; }
+    .shift .del { opacity: 0; font-size: 11px; cursor: pointer; background: none; border: none; padding: 0 2px; color: inherit; transition: opacity 0.15s; }
+    .shift:hover .del { opacity: 0.7; }
+    .shift .del:hover { opacity: 1; font-weight: bold; }
+
+    .s-blue   { background: #B5D4F4; color: #042C53; }
+    .s-green  { background: #C0DD97; color: #173404; }
+    .s-amber  { background: #FAC775; color: #412402; }
+    .s-purple { background: #CECBF6; color: #26215C; }
+    .s-coral  { background: #F5C4B3; color: #4A1B0C; }
+    .s-teal   { background: #9FE1CB; color: #04342C; }
+    
+    .empty-hint { font-size: 10px; color: #a0b2c6; text-align: center; padding: 4px 0; opacity: 0; transition: opacity 0.15s; pointer-events: none; }
+
+    .modal-overlay { display: none; min-height: 100vh; background: rgba(0,0,0,0.35); align-items: center; justify-content: center; position: fixed; inset: 0; z-index: 200; }
+    .modal-overlay.open { display: flex; }
+    .modal { background: #fff; border-radius: 12px; border: 1px solid #e5e5e5; padding: 1.5rem; width: 340px; }
+    .modal h2 { font-size: 16px; font-weight: 500; margin-bottom: 1rem; }
+    .field { margin-bottom: 12px; }
+    .field label { font-size: 12px; color: #666; display: block; margin-bottom: 4px; }
+    .field select, .field input[type="time"] { width: 100%; font-size: 14px; padding: 7px 10px; border: 1px solid #ddd; border-radius: 8px; background: #fff; color: #1a1a1a; }
+    .time-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .modal-btns { display: flex; gap: 8px; margin-top: 1.25rem; justify-content: flex-end; }
+    .modal-btns button { padding: 8px 18px; border-radius: 8px; font-size: 14px; cursor: pointer; }
+    .btn-cancel { background: none; border: 1px solid #ddd; color: #333; }
+    .btn-cancel:hover { background: #f0f0f0; }
+    .btn-save { background: #185FA5; color: #E6F1FB; border: none; }
+    .btn-save:hover { background: #0C447C; }
+
+    .toast { position: fixed; bottom: 24px; right: 24px; background: #1a1a1a; color: #fff; padding: 10px 18px; border-radius: 8px; font-size: 13px; opacity: 0; transition: opacity 0.3s; pointer-events: none; z-index: 300; }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-card">
+    <div class="logo"><i class="ti ti-calendar"></i></div>
+    <h1>Chefinloggning</h1>
+    <p>Logga in för att hantera schemat</p>
+    <input type="password" id="pw-input" placeholder="Lösenord" onkeydown="if(event.key==='Enter')login()">
+    <button onclick="login()">Logga in</button>
+    <div class="login-err" id="login-err">Fel lösenord, försök igen.</div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-left">
+      <i class="ti ti-calendar" style="font-size:22px;color:#185FA5"></i>
+      <h1>Schema</h1>
+      <span class="badge-chef"><i class="ti ti-shield-check" style="font-size:11px"></i> Chef</span>
+    </div>
+    <div class="nav-week">
+      <button onclick="changeWeek(-1)"><i class="ti ti-chevron-left"></i></button>
+      <span class="week-label" id="week-label"></span>
+      <button onclick="changeWeek(1)"><i class="ti ti-chevron-right"></i></button>
+    </div>
+    <div class="topbar-right">
+      <button class="add-btn" onclick="openModal()"><i class="ti ti-plus"></i> Lägg till pass</button>
+      <button class="logout-btn" onclick="logout()">Logga ut</button>
+    </div>
+  </div>
+
+  <div class="summary" id="summary"></div>
+
+  <div class="schedule">
+    <div class="header-row">
+      <div class="corner"></div>
+      <div class="header-day" id="hd0"></div>
+      <div class="header-day" id="hd1"></div>
+      <div class="header-day" id="hd2"></div>
+      <div class="header-day" id="hd3"></div>
+      <div class="header-day" id="hd4"></div>
+      <div class="header-day" id="hd5"></div>
+      <div class="header-day" id="hd6"></div>
+    </div>
+    <div id="emp-rows"></div>
+  </div>
+</div>
+
+<div id="modal" class="modal-overlay" onclick="closeIfOutside(event)">
+  <div class="modal">
+    <h2 id="modal-title">Lägg till pass</h2>
+    <div class="field"><label>Anställd</label><select id="sel-emp"></select></div>
+    <div class="field">
+      <label>Dag & Datum</label>
+      <select id="sel-day"></select>
+    </div>
+    <input type="hidden" id="sel-week-id">
+    
+    <div class="time-row">
+      <div class="field"><label>Starttid</label><input type="time" id="sel-start" value="08:00"></div>
+      <div class="field"><label>Sluttid</label><input type="time" id="sel-end" value="16:00"></div>
+    </div>
+    <div class="field">
+      <label>Färg</label>
+      <select id="sel-color">
+        <option value="s-blue">Blå</option><option value="s-green">Grön</option>
+        <option value="s-amber">Gul</option><option value="s-purple">Lila</option>
+        <option value="s-coral">Korall</option><option value="s-teal">Turkos</option>
+      </select>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal()">Avbryt</button>
+      <button class="btn-save" onclick="saveShift()" id="modal-save-btn">Spara pass</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const CHEF_PASSWORD = "chef123";
+  const STORAGE_KEY = "quinyx_shifts_v1";
+
+  const employees = [
+    { id: 1, name: "Anna S.",   role: "Kassör",  color: "#CECBF6", tc: "#26215C" },
+    { id: 2, name: "Marcus L.",role: "Säljare", color: "#9FE1CB", tc: "#04342C" },
+    { id: 3, name: "Sara K.",  role: "Lager",   color: "#F5C4B3", tc: "#4A1B0C" },
+    { id: 4, name: "Erik H.",  role: "Säljare", color: "#FAC775", tc: "#412402" },
+    { id: 5, name: "Lena B.",  role: "Chef",    color: "#B5D4F4", tc: "#042C53" },
+  ];
+
+  // FIX: Lagt till en 'weekId'-egenskap på standardpassen så de inte visas på alla veckor
+  const defaultShifts = [
+    { id:1,  emp:1, day:0, weekId:"2026-W25", start:"08:00", end:"16:00", color:"s-blue"   },
+    { id:2,  emp:2, day:0, weekId:"2026-W25", start:"14:00", end:"22:00", color:"s-teal"   },
+    { id:3,  emp:3, day:1, weekId:"2026-W25", start:"07:00", end:"15:00", color:"s-coral"  },
+    { id:4,  emp:5, day:0, weekId:"2026-W25", start:"09:00", end:"17:00", color:"s-blue"   },
+    { id:5,  emp:1, day:2, weekId:"2026-W25", start:"08:00", end:"16:00", color:"s-blue"   },
+    { id:6,  emp:4, day:3, weekId:"2026-W25", start:"12:00", end:"20:00", color:"s-amber"  },
+    { id:7,  emp:2, day:4, weekId:"2026-W25", start:"08:00", end:"14:00", color:"s-teal"   },
+    { id:8,  emp:5, day:4, weekId:"2026-W25", start:"09:00", end:"17:00", color:"s-blue"   },
+    { id:9,  emp:3, day:5, weekId:"2026-W25", start:"10:00", end:"18:00", color:"s-coral"  },
+    { id:10, emp:4, day:1, weekId:"2026-W25", start:"08:00", end:"16:00", color:"s-amber"  },
+  ];
+
+  function loadShifts() {
+    try { 
+      const d = localStorage.getItem(STORAGE_KEY); 
+      if(d) {
+        let parsed = JSON.parse(d);
+        // Säkerställ att gamla sparade pass också får ett standard-weekId om det saknas
+        parsed.forEach(s => { if(!s.weekId) s.weekId = "2026-W25"; });
+        return parsed;
+      }
+      return defaultShifts;
+    }
+    catch(e) { return defaultShifts; }
+  }
+  function saveShifts() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(shifts));
+  }
+
+  let shifts = loadShifts();
+  let nextId = Math.max(...shifts.map(s=>s.id), 10) + 1;
+  let weekOffset = 0;
+  let editId = null;
+
+  function login() {
+    const val = document.getElementById("pw-input").value;
+    if(val === CHEF_PASSWORD) {
+      document.getElementById("login-screen").style.display = "none";
+      document.getElementById("app").style.display = "block";
+      render();
+    } else {
+      document.getElementById("login-err").style.display = "block";
+      document.getElementById("pw-input").value = "";
+    }
+  }
+
+  function logout() {
+    document.getElementById("login-screen").style.display = "flex";
+    document.getElementById("app").style.display = "none";
+    document.getElementById("pw-input").value = "";
+  }
+
+  function initials(n) { return n.split(" ").map(x=>x[0]).join("").toUpperCase(); }
+  const days = ["Mån","Tis","Ons","Tor","Fre","Lör","Sön"];
+  const fullDays = ["Måndag","Tisdag","Onsdag","Torsdag","Fredag","Lördag","Söndag"];
+
+  function getMondayOfWeek(offset) {
+    const now = new Date(); const day = now.getDay();
+    const diff = (day===0?-6:1-day); const mon = new Date(now);
+    mon.setDate(now.getDate()+diff+offset*7); mon.setHours(0,0,0,0); return mon;
+  }
+  function formatDate(d) { return d.getDate()+"/"+(d.getMonth()+1); }
+  function isToday(d) { const t=new Date(); t.setHours(0,0,0,0); return d.getTime()===t.getTime(); }
+  function getDuration(s,e) {
+    const [sh,sm]=s.split(":").map(Number); const [eh,em]=e.split(":").map(Number);
+    return ((eh*60+em)-(sh*60+sm))/60;
+  }
+  
+  // Skapar en unik sträng för varje vecka (ex: "2026-W25")
+  function getWeekIdentifier(d) {
+    const date=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+    const dn=date.getUTCDay()||7; date.setUTCDate(date.getUTCDate()+4-dn);
+    const ys=new Date(Date.UTC(date.getUTCFullYear(),0,1));
+    const wNum = Math.ceil((((date-ys)/86400000)+1)/7);
+    return date.getUTCFullYear() + "-W" + wNum;
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById("toast"); t.textContent = msg; t.classList.add("show");
+    setTimeout(()=>t.classList.remove("show"), 2200);
+  }
+
+  // Uppdaterar rullistan i rutan med dynamiska datum baserat på vald vecka
+  function updateDaySelectOptions(mon) {
+    const daySelect = document.getElementById("sel-day");
+    daySelect.innerHTML = fullDays.map((name, i) => {
+      const d = new Date(mon);
+      d.setDate(mon.getDate() + i);
+      return `<option value="${i}">${name} (${d.getDate()}/${d.getMonth()+1})</option>`;
+    }).join("");
+  }
+
+  function render() {
+    const mon = getMondayOfWeek(weekOffset);
+    const currentWeekId = getWeekIdentifier(mon);
+    const dates = Array.from({length:7},(_,i)=>{ const d=new Date(mon); d.setDate(mon.getDate()+i); return d; });
+    
+    document.getElementById("week-label").textContent = "Vecka "+currentWeekId.split("-W")[1]+" · "+formatDate(dates[0])+" – "+formatDate(dates[6]);
+    
+    days.forEach((d,i)=>{
+      const el=document.getElementById("hd"+i);
+      el.innerHTML=`<span style="font-size:11px">${d}</span><span class="date-num">${dates[i].getDate()}</span>`;
+      isToday(dates[i])?el.classList.add("today"):el.classList.remove("today");
+    });
+    
+    document.getElementById("sel-emp").innerHTML = employees.map(e=>`<option value="${e.id}">${e.name}</option>`).join("");
+    
+    const rows = document.getElementById("emp-rows");
+    rows.innerHTML = employees.map(emp => {
+      const cells = Array.from({length:7},(_, di)=>{
+        // FIX: Filtrerar nu även på weekId så att bara den aktuella veckans pass syns!
+        const ds = shifts.filter(s=>s.emp===emp.id && s.day===di && s.weekId === currentWeekId);
+        
+        const html = ds.map(s=>
+          `<div class="shift ${s.color}" onclick="openEdit(event, ${s.id})" title="Redigera">
+            <span class="time">${s.start}–${s.end}</span>
+            <button class="del" onclick="event.stopPropagation();deleteShift(${s.id})">✕</button>
+          </div>`).join("");
+        return `<div class="day-cell" onclick="openModalForCell(${emp.id},${di})">${html}${ds.length===0?'<div class="empty-hint">+ lägg till</div>':''}</div>`;
+      });
+      return `<div class="emp-row">
+        <div class="emp-name">
+          <div class="avatar" style="background:${emp.color};color:${emp.tc}">${initials(emp.name)}</div>
+          <div class="emp-info"><div class="name">${emp.name}</div><div class="role">${emp.role}</div></div>
+        </div>${cells.join("")}</div>`;
+    }).join("");
+
+    // FIX: Summeringen räknar nu bara timmar och pass för den aktuella veckan
+    const weekShifts = shifts.filter(s => s.weekId === currentWeekId);
+    const total = weekShifts.length;
+    const hours = Math.round(weekShifts.reduce((a,s)=>a+getDuration(s.start,s.end),0));
+    const staffed = new Set(weekShifts.map(s=>s.day)).size;
+    
+    document.getElementById("summary").innerHTML = `
+      <div class="stat"><div class="slabel">Pass</div><div class="sval">${total}</div></div>
+      <div class="stat"><div class="slabel">Timmar</div><div class="sval">${hours}</div></div>
+      <div class="stat"><div class="slabel">Bemannade dagar</div><div class="sval">${staffed}/7</div></div>
+      <div class="stat"><div class="slabel">Personal</div><div class="sval">${employees.length}</div></div>`;
+  }
+
+  function changeWeek(dir) { weekOffset+=dir; render(); }
+
+  function openModal(empId=null, dayIdx=null) {
+    editId=null;
+    const mon = getMondayOfWeek(weekOffset);
+    
+    document.getElementById("modal-title").textContent="Lägg till pass";
+    document.getElementById("modal-save-btn").textContent="Spara pass";
+    document.getElementById("sel-week-id").value = getWeekIdentifier(mon);
+    
+    updateDaySelectOptions(mon);
+    
+    if(empId) document.getElementById("sel-emp").value=empId;
+    if(dayIdx!==null) document.getElementById("sel-day").value=dayIdx;
+    document.getElementById("sel-start").value="08:00";
+    document.getElementById("sel-end").value="16:00";
+    document.getElementById("sel-color").value="s-blue";
+    document.getElementById("modal").classList.add("open");
+  }
+  
+  function openModalForCell(empId,dayIdx) { openModal(empId,dayIdx); }
+  
+  function openEdit(e, id) {
+    if(e) e.stopPropagation(); 
+    const s=shifts.find(x=>x.id===id); if(!s) return;
+    editId=id;
+    
+    const mon = getMondayOfWeek(weekOffset);
+    updateDaySelectOptions(mon);
+    
+    document.getElementById("modal-title").textContent="Redigera pass";
+    document.getElementById("modal-save-btn").textContent="Uppdatera pass";
+    document.getElementById("sel-week-id").value = s.weekId;
+    document.getElementById("sel-emp").value = s.emp;
+    document.getElementById("sel-day").value = s.day;
+    document.getElementById("sel-start").value = s.start;
+    document.getElementById("sel-end").value = s.end;
+    document.getElementById("sel-color").value = s.color;
+    document.getElementById("modal").classList.add("open");
+  }
+  
+  function closeModal() { document.getElementById("modal").classList.remove("open"); editId=null; }
+  function closeIfOutside(e) { if(e.target.id==="modal") closeModal(); }
+
+  function saveShift() {
+    const emp=parseInt(document.getElementById("sel-emp").value);
+    const day=parseInt(document.getElementById("sel-day").value);
+    const weekId=document.getElementById("sel-week-id").value;
+    const start=document.getElementById("sel-start").value;
+    const end=document.getElementById("sel-end").value;
+    const color=document.getElementById("sel-color").value;
+    if(start>=end){alert("Sluttid måste vara efter starttid!"); return;}
+    
+    if(editId!==null) { 
+      const s=shifts.find(x=>x.id===editId); 
+      Object.assign(s,{emp,day,weekId,start,end,color}); 
+      showToast("Pass uppdaterat"); 
+    }
+    else { 
+      shifts.push({id:nextId++,emp,day,weekId,start,end,color}); 
+      showToast("Pass tillagt"); 
+    }
+    saveShifts(); closeModal(); render();
+  }
+  
+  function deleteShift(id) {
+    if(confirm("Ta bort detta pass?")) {
+      shifts=shifts.filter(s=>s.id!==id); saveShifts(); render(); showToast("Pass borttaget");
+    }
+  }
+</script>
+</body>
+</html>
