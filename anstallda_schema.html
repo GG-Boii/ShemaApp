@@ -25,7 +25,7 @@
     .badge-ro { background: #C0DD97; color: #173404; font-size: 11px; padding: 3px 9px; border-radius: 20px; font-weight: 500; }
     .nav-week { display: flex; align-items: center; gap: 8px; }
     .nav-week button { background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 6px 10px; cursor: pointer; font-size: 14px; }
-    .nav-week button:hover { background: #f0f0f0; }
+    .nav-week button:hover { background: #f0f0f8; }
     .week-label { font-size: 14px; color: #666; min-width: 160px; text-align: center; }
     .topbar-right { display: flex; gap: 8px; }
     .refresh-btn { background: none; border: 1px solid #ddd; border-radius: 8px; padding: 8px 12px; cursor: pointer; font-size: 14px; color: #666; display: flex; align-items: center; gap: 5px; }
@@ -73,9 +73,9 @@
     .personal-card .big-avatar { width: 64px; height: 64px; border-radius: 50%; font-size: 22px; font-weight: 500; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
     .personal-card h2 { font-size: 18px; font-weight: 500; margin-bottom: 4px; }
     .personal-card p { font-size: 13px; color: #888; margin-bottom: 15px; }
-    .personal-stat-box { background: #f9f9f7; width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #eee; }
-    .personal-stat-box .num { font-size: 24px; font-weight: 600; color: #185FA5; }
-    .personal-stat-box .lbl { font-size: 12px; color: #666; }
+    .personal-card .personal-stat-box { background: #f9f9f7; width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #eee; }
+    .personal-card .personal-stat-box .num { font-size: 24px; font-weight: 600; color: #185FA5; }
+    .personal-card .personal-stat-box .lbl { font-size: 12px; color: #666; }
     .personal-list { background: white; border: 1px solid #e5e5e5; border-radius: 12px; padding: 20px; }
     .personal-list h3 { font-size: 15px; font-weight: 500; margin-bottom: 15px; color: #333; border-bottom: 1px solid #eee; padding-bottom: 8px; }
     .shift-row-item { display: flex; align-items: center; justify-content: space-between; padding: 12px; border-radius: 8px; margin-bottom: 8px; border: 1px solid #f0f0f0; background: #fafafa; }
@@ -158,7 +158,7 @@
 
 <script>
   // ==========================================
-  // KLISTRA IN DINA NYCKLAR FRÅN SUPABASE HÄR:
+  // KOM IHÅG ATT KLISTRA IN DINA SUPABASE-NYCKLAR HÄR IGEN:
   // ==========================================
   const SUPABASE_URL = "https://qrscclhpmjjnvcgmwtaa.supabase.co/rest/v1/";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFyc2NjbGhwbWpqbnZjZ213dGFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3Mjg5MTAsImV4cCI6MjA5NzMwNDkxMH0.z6kk3V9tr3i5L--XDChnfvZMRVMQt-Z0m9oh1yOVWIc";
@@ -178,19 +178,27 @@
   let weekOffset = 0;
   let currentView = 'personal';
   let loggedInEmpId = null;
+  let isListening = false;
 
   async function fetchShiftsFromCloud() {
-    const { data, error } = await supabaseClient.from('shifts').select('*');
-    if (!error && data) {
-      shifts = data;
-      render();
+    try {
+      const { data, error } = await supabaseClient.from('shifts').select('*');
+      if (!error && data) {
+        shifts = data;
+        render();
+      }
+    } catch (err) {
+      console.error("Fel vid hämtning:", err);
     }
   }
 
   function setupRealtimeListener() {
+    if (isListening) return;
+    isListening = true;
+
     supabaseClient
       .channel('schema-changes-emp')
-      .on('postgres_changes', { event: '*', filter: 'id=gt.0', table: 'shifts', schema: 'public' }, () => {
+      .on('postgres_changes', { event: '*', table: 'shifts', schema: 'public' }, () => {
         fetchShiftsFromCloud();
       })
       .subscribe();

@@ -161,7 +161,7 @@
 
 <script>
   // ==========================================
-  // KLISTRA IN DINA NYCKLAR FRÅN SUPABASE HÄR:
+  // KOM IHÅG ATT KLISTRA IN DINA SUPABASE-NYCKLAR HÄR IGEN:
   // ==========================================
   const SUPABASE_URL = "https://qrscclhpmjjnvcgmwtaa.supabase.co/rest/v1/";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFyc2NjbGhwbWpqbnZjZ213dGFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3Mjg5MTAsImV4cCI6MjA5NzMwNDkxMH0.z6kk3V9tr3i5L--XDChnfvZMRVMQt-Z0m9oh1yOVWIc";
@@ -181,19 +181,27 @@
   let shifts = [];
   let weekOffset = 0;
   let editId = null;
+  let isListening = false;
 
   async function fetchShiftsFromCloud() {
-    const { data, error } = await supabaseClient.from('shifts').select('*');
-    if (!error && data) {
-      shifts = data;
-      render();
+    try {
+      const { data, error } = await supabaseClient.from('shifts').select('*');
+      if (!error && data) {
+        shifts = data;
+        render();
+      }
+    } catch (err) {
+      console.error("Fel vid hämtning:", err);
     }
   }
 
   function setupRealtimeListener() {
+    if (isListening) return; // Förhindrar oändlig loop av lyssnare
+    isListening = true;
+    
     supabaseClient
       .channel('schema-changes')
-      .on('postgres_changes', { event: '*', filter: 'id=gt.0', table: 'shifts', schema: 'public' }, () => {
+      .on('postgres_changes', { event: '*', table: 'shifts', schema: 'public' }, () => {
         fetchShiftsFromCloud();
       })
       .subscribe();
@@ -344,6 +352,8 @@
     const color=document.getElementById("sel-color").value;
     if(start>=end){alert("Sluttid måste vara efter starttid!"); return;}
     
+    closeModal(); // Stäng direkt för bättre känsla
+
     if(editId!==null) {
       const { error } = await supabaseClient.from('shifts').update({ emp, day, weekId, start, end, color }).eq('id', editId);
       if(!error) showToast("Pass uppdaterat i molnet");
@@ -351,13 +361,12 @@
       const { error } = await supabaseClient.from('shifts').insert([{ emp, day, weekId, start, end, color }]);
       if(!error) showToast("Pass sparat i molnet");
     }
-    closeModal(); fetchShiftsFromCloud();
   }
   
   async function deleteShift(id) {
     if(confirm("Ta bort detta pass?")) {
       const { error } = await supabaseClient.from('shifts').delete().eq('id', id);
-      if(!error) { fetchShiftsFromCloud(); showToast("Pass borttaget"); }
+      if(!error) { showToast("Pass borttaget"); }
     }
   }
 </script>
