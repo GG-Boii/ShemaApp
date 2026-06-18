@@ -160,12 +160,8 @@
 <div class="toast" id="toast"></div>
 
 <script>
-  // ==========================================
-  // KOM IHÅG ATT KLISTRA IN DINA SUPABASE-NYCKLAR HÄR IGEN:
-  // ==========================================
   const SUPABASE_URL = "https://qrscclhpmjjnvcgmwtaa.supabase.co/rest/v1/";
   const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFyc2NjbGhwbWpqbnZjZ213dGFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3Mjg5MTAsImV4cCI6MjA5NzMwNDkxMH0.z6kk3V9tr3i5L--XDChnfvZMRVMQt-Z0m9oh1yOVWIc";
-  // ==========================================
 
   const CHEF_PASSWORD = "chef123";
   const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -196,7 +192,7 @@
   }
 
   function setupRealtimeListener() {
-    if (isListening) return; // Förhindrar oändlig loop av lyssnare
+    if (isListening) return;
     isListening = true;
     
     supabaseClient
@@ -256,10 +252,12 @@
 
   function updateDaySelectOptions(mon) {
     const daySelect = document.getElementById("sel-day");
-    daySelect.innerHTML = fullDays.map((name, i) => {
-      const d = new Date(mon); d.setDate(mon.getDate() + i);
-      return `<option value="${i}">${name} (${d.getDate()}/${d.getMonth()+1})</option>`;
-    }).join("");
+    if(daySelect) {
+      daySelect.innerHTML = fullDays.map((name, i) => {
+        const d = new Date(mon); d.setDate(mon.getDate() + i);
+        return `<option value="${i}">${name} (${d.getDate()}/${d.getMonth()+1})</option>`;
+      }).join("");
+    }
   }
 
   function render() {
@@ -275,7 +273,10 @@
       isToday(dates[i])?el.classList.add("today"):el.classList.remove("today");
     });
     
-    document.getElementById("sel-emp").innerHTML = employees.map(e=>`<option value="${e.id}">${e.name}</option>`).join("");
+    const empSelect = document.getElementById("sel-emp");
+    if(empSelect) {
+      empSelect.innerHTML = employees.map(e=>`<option value="${e.id}">${e.name}</option>`).join("");
+    }
     
     const rows = document.getElementById("emp-rows");
     rows.innerHTML = employees.map(emp => {
@@ -352,7 +353,7 @@
     const color=document.getElementById("sel-color").value;
     if(start>=end){alert("Sluttid måste vara efter starttid!"); return;}
     
-    closeModal(); // Stäng direkt för bättre känsla
+    closeModal();
 
     if(editId!==null) {
       const { error } = await supabaseClient.from('shifts').update({ emp, day, weekId, start, end, color }).eq('id', editId);
