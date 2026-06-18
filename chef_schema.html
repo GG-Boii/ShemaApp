@@ -3,28 +3,25 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Schema – Chefvy</title>
+  <title>Schema – Chefvy (Live)</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+  <!-- Inkludera Supabase-klienten -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: system-ui, sans-serif; background: #f5f5f3; color: #1a1a1a; min-height: 100vh; }
 
-    #login-screen {
-      min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #f5f5f3;
-    }
-    .login-card {
-      background: #fff; border: 1px solid #e5e5e5; border-radius: 14px; padding: 2.5rem 2rem; width: 320px; text-align: center;
-    }
+    #login-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #f5f5f3; }
+    .login-card { background: #fff; border: 1px solid #e5e5e5; border-radius: 14px; padding: 2.5rem 2rem; width: 320px; text-align: center; }
     .login-card .logo { font-size: 32px; color: #185FA5; margin-bottom: 1rem; }
     .login-card h1 { font-size: 18px; font-weight: 500; margin-bottom: 0.3rem; }
     .login-card p { font-size: 13px; color: #888; margin-bottom: 1.5rem; }
-    .login-card input { width: 100%; font-size: 15px; padding: 9px 12px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 12px; }
+    .login-card input { width: 100%; font-size: 15px; padding: 9px 12px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 12px; text-align: center; }
     .login-card button { width: 100%; background: #185FA5; color: #E6F1FB; border: none; border-radius: 8px; padding: 10px; font-size: 15px; cursor: pointer; }
     .login-card button:hover { background: #0C447C; }
     .login-err { color: #A32D2D; font-size: 13px; margin-top: 8px; display: none; }
 
     #app { display: none; padding: 1.5rem; max-width: 1100px; margin: 0 auto; }
-
     .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 12px; }
     .topbar-left { display: flex; align-items: center; gap: 10px; }
     .topbar h1 { font-size: 20px; font-weight: 500; }
@@ -58,7 +55,6 @@
     .emp-info .name { font-size: 13px; font-weight: 500; }
     .emp-info .role { font-size: 11px; color: #888; }
     
-    /* Cell-hovering */
     .day-cell { border-right: 1px solid #e5e5e5; padding: 4px; display: flex; flex-direction: column; gap: 3px; cursor: pointer; transition: background 0.15s; justify-content: center; }
     .day-cell:last-child { border-right: none; }
     .day-cell:hover { background: #f2f7fe; }
@@ -105,7 +101,7 @@
   <div class="login-card">
     <div class="logo"><i class="ti ti-calendar"></i></div>
     <h1>Chefinloggning</h1>
-    <p>Logga in för att hantera schemat</p>
+    <p>Logga in för att hantera schemat live</p>
     <input type="password" id="pw-input" placeholder="Lösenord" onkeydown="if(event.key==='Enter')login()">
     <button onclick="login()">Logga in</button>
     <div class="login-err" id="login-err">Fel lösenord, försök igen.</div>
@@ -117,16 +113,16 @@
     <div class="topbar-left">
       <i class="ti ti-calendar" style="font-size:22px;color:#185FA5"></i>
       <h1>Schema</h1>
-      <span class="badge-chef"><i class="ti ti-shield-check" style="font-size:11px"></i> Chef</span>
+      <span class="badge-chef"><i class="ti ti-shield-check" style="font-size:11px"></i> Chef (Live)</span>
     </div>
     <div class="nav-week">
       <button onclick="changeWeek(-1)"><i class="ti ti-chevron-left"></i></button>
-      <span class="week-label" id="week-label"></span>
+      <span class="week-label" id="week-label">Laddar...</span>
       <button onclick="changeWeek(1)"><i class="ti ti-chevron-right"></i></button>
     </div>
     <div class="topbar-right">
       <button class="add-btn" onclick="openModal()"><i class="ti ti-plus"></i> Lägg till pass</button>
-      <button class="logout-btn" onclick="logout()">Logga ut</button>
+      <button class="logout-btn" onclick="logout()"><i class="ti ti-logout"></i> Logga ut</button>
     </div>
   </div>
 
@@ -180,7 +176,11 @@
 
 <script>
   const CHEF_PASSWORD = "chef123";
-  const STORAGE_KEY = "quinyx_shifts_v1";
+  
+  // Konfiguration för Supabase (Samma som i Anställdvyn)
+  const SUPABASE_URL = "https://qrscclhpmjjnvcgmwtaa.supabase.co/rest/v1/";
+  const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFyc2NjbGhwbWpqbnZjZ213dGFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE3Mjg5MTAsImV4cCI6MjA5NzMwNDkxMH0.z6kk3V9tr3i5L--XDChnfvZMRVMQt-Z0m9oh1yOVWIc";
+  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   const employees = [
     { id: 1, name: "Anna S.",   role: "Kassör",  color: "#CECBF6", tc: "#26215C" },
@@ -190,48 +190,42 @@
     { id: 5, name: "Lena B.",  role: "Chef",    color: "#B5D4F4", tc: "#042C53" },
   ];
 
-  // FIX: Lagt till en 'weekId'-egenskap på standardpassen så de inte visas på alla veckor
-  const defaultShifts = [
-    { id:1,  emp:1, day:0, weekId:"2026-W25", start:"08:00", end:"16:00", color:"s-blue"   },
-    { id:2,  emp:2, day:0, weekId:"2026-W25", start:"14:00", end:"22:00", color:"s-teal"   },
-    { id:3,  emp:3, day:1, weekId:"2026-W25", start:"07:00", end:"15:00", color:"s-coral"  },
-    { id:4,  emp:5, day:0, weekId:"2026-W25", start:"09:00", end:"17:00", color:"s-blue"   },
-    { id:5,  emp:1, day:2, weekId:"2026-W25", start:"08:00", end:"16:00", color:"s-blue"   },
-    { id:6,  emp:4, day:3, weekId:"2026-W25", start:"12:00", end:"20:00", color:"s-amber"  },
-    { id:7,  emp:2, day:4, weekId:"2026-W25", start:"08:00", end:"14:00", color:"s-teal"   },
-    { id:8,  emp:5, day:4, weekId:"2026-W25", start:"09:00", end:"17:00", color:"s-blue"   },
-    { id:9,  emp:3, day:5, weekId:"2026-W25", start:"10:00", end:"18:00", color:"s-coral"  },
-    { id:10, emp:4, day:1, weekId:"2026-W25", start:"08:00", end:"16:00", color:"s-amber"  },
-  ];
-
-  function loadShifts() {
-    try { 
-      const d = localStorage.getItem(STORAGE_KEY); 
-      if(d) {
-        let parsed = JSON.parse(d);
-        // Säkerställ att gamla sparade pass också får ett standard-weekId om det saknas
-        parsed.forEach(s => { if(!s.weekId) s.weekId = "2026-W25"; });
-        return parsed;
-      }
-      return defaultShifts;
-    }
-    catch(e) { return defaultShifts; }
-  }
-  function saveShifts() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(shifts));
-  }
-
-  let shifts = loadShifts();
-  let nextId = Math.max(...shifts.map(s=>s.id), 10) + 1;
+  let shifts = [];
   let weekOffset = 0;
   let editId = null;
+  let isListening = false;
+
+  async function fetchShiftsFromCloud() {
+    try {
+      const { data, error } = await supabaseClient.from('shifts').select('*');
+      if (!error && data) {
+        shifts = data;
+        render();
+      }
+    } catch (err) {
+      console.error("Fel vid hämtning:", err);
+    }
+  }
+
+  function setupRealtimeListener() {
+    if (isListening) return;
+    isListening = true;
+
+    supabaseClient
+      .channel('schema-changes-chef')
+      .on('postgres_changes', { event: '*', table: 'shifts', schema: 'public' }, () => {
+        fetchShiftsFromCloud();
+      })
+      .subscribe();
+  }
 
   function login() {
     const val = document.getElementById("pw-input").value;
     if(val === CHEF_PASSWORD) {
       document.getElementById("login-screen").style.display = "none";
       document.getElementById("app").style.display = "block";
-      render();
+      fetchShiftsFromCloud();
+      setupRealtimeListener();
     } else {
       document.getElementById("login-err").style.display = "block";
       document.getElementById("pw-input").value = "";
@@ -260,7 +254,6 @@
     return ((eh*60+em)-(sh*60+sm))/60;
   }
   
-  // Skapar en unik sträng för varje vecka (ex: "2026-W25")
   function getWeekIdentifier(d) {
     const date=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
     const dn=date.getUTCDay()||7; date.setUTCDate(date.getUTCDate()+4-dn);
@@ -274,7 +267,6 @@
     setTimeout(()=>t.classList.remove("show"), 2200);
   }
 
-  // Uppdaterar rullistan i rutan med dynamiska datum baserat på vald vecka
   function updateDaySelectOptions(mon) {
     const daySelect = document.getElementById("sel-day");
     daySelect.innerHTML = fullDays.map((name, i) => {
@@ -302,7 +294,6 @@
     const rows = document.getElementById("emp-rows");
     rows.innerHTML = employees.map(emp => {
       const cells = Array.from({length:7},(_, di)=>{
-        // FIX: Filtrerar nu även på weekId så att bara den aktuella veckans pass syns!
         const ds = shifts.filter(s=>s.emp===emp.id && s.day===di && s.weekId === currentWeekId);
         
         const html = ds.map(s=>
@@ -319,7 +310,6 @@
         </div>${cells.join("")}</div>`;
     }).join("");
 
-    // FIX: Summeringen räknar nu bara timmar och pass för den aktuella veckan
     const weekShifts = shifts.filter(s => s.weekId === currentWeekId);
     const total = weekShifts.length;
     const hours = Math.round(weekShifts.reduce((a,s)=>a+getDuration(s.start,s.end),0));
@@ -376,7 +366,7 @@
   function closeModal() { document.getElementById("modal").classList.remove("open"); editId=null; }
   function closeIfOutside(e) { if(e.target.id==="modal") closeModal(); }
 
-  function saveShift() {
+  async function saveShift() {
     const emp=parseInt(document.getElementById("sel-emp").value);
     const day=parseInt(document.getElementById("sel-day").value);
     const weekId=document.getElementById("sel-week-id").value;
@@ -385,21 +375,39 @@
     const color=document.getElementById("sel-color").value;
     if(start>=end){alert("Sluttid måste vara efter starttid!"); return;}
     
-    if(editId!==null) { 
-      const s=shifts.find(x=>x.id===editId); 
-      Object.assign(s,{emp,day,weekId,start,end,color}); 
-      showToast("Pass uppdaterat"); 
+    const shiftData = { emp, day, weekId, start, end, color };
+
+    try {
+      if(editId!==null) { 
+        // Uppdatera i Supabase
+        const { error } = await supabaseClient.from('shifts').update(shiftData).eq('id', editId);
+        if(!error) showToast("Pass uppdaterat i molnet"); 
+      }
+      else { 
+        // Spara nytt i Supabase (id genereras automatiskt av databasen)
+        const { error } = await supabaseClient.from('shifts').insert([shiftData]);
+        if(!error) showToast("Pass tillagt i molnet"); 
+      }
+    } catch (err) {
+      console.error("Kunde inte spara:", err);
+      showToast("Ett fel uppstod vid synkning");
     }
-    else { 
-      shifts.push({id:nextId++,emp,day,weekId,start,end,color}); 
-      showToast("Pass tillagt"); 
-    }
-    saveShifts(); closeModal(); render();
+
+    closeModal(); 
+    fetchShiftsFromCloud();
   }
   
-  function deleteShift(id) {
+  async function deleteShift(id) {
     if(confirm("Ta bort detta pass?")) {
-      shifts=shifts.filter(s=>s.id!==id); saveShifts(); render(); showToast("Pass borttaget");
+      try {
+        const { error } = await supabaseClient.from('shifts').delete().eq('id', id);
+        if(!error) {
+          showToast("Pass borttaget från molnet");
+          fetchShiftsFromCloud();
+        }
+      } catch(err) {
+        console.error("Kunde inte radera:", err);
+      }
     }
   }
 </script>
